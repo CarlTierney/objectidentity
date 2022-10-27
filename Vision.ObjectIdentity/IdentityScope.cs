@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Vision.ObjectIdentity
 {
-    public class IdentityScope<TScope,T> : IIdentityScope<TScope,T>
+    public class IdentityScope<T> : IIdentityScope<T>
     {
         private Type _idType;
         private object _idLock = new object();
@@ -23,11 +23,12 @@ namespace Vision.ObjectIdentity
 
         public IdentityScope(          
             int blockSize,
+            string scope,
             Func<int,List<T>> blockFunction
             )
         {
             _idType = typeof(T);
-            _scope = typeof(TScope).Name;
+            _scope = scope;
             _blockSize = blockSize;
             _blockFunction = blockFunction;
             _availableIds = new Queue<T>();
@@ -39,7 +40,7 @@ namespace Vision.ObjectIdentity
 
         public string Scope => _scope;
 
-        public Type ForType => typeof(TScope);
+        
 
         
 

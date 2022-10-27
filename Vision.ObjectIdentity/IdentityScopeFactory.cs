@@ -19,12 +19,12 @@ namespace Vision.ObjectIdentity
             _defaultBlockSize = defaultBlocsize;
         }
 
-        public IIdentityScope<TScope,T> CreateIdentityScope<TScope, T>()
+        public IIdentityScope<T> CreateIdentityScope<T>(string scope)
         {
-           var blockFunc = _identityScopeInitializer.Initialize<TScope,T>();
+           var blockFunc = _identityScopeInitializer.Initialize<T>(scope);
 
-            var scope = new IdentityScope<TScope, T>(_defaultBlockSize, blockFunc);
-            return scope;
+            var idScope = new IdentityScope<T>(_defaultBlockSize, scope, blockFunc);
+            return idScope;
 
         }
     }

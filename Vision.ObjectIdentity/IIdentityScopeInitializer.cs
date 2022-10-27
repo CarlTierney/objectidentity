@@ -6,6 +6,6 @@ namespace Vision.ObjectIdentity
 {
     public interface IIdentityScopeInitializer
     {
-        Func<int, List<T>> Initialize<TScope, T>();
+        Func<int, List<T>> Initialize<T>(string scope);
     }
 }

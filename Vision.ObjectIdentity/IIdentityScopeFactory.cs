@@ -6,6 +6,6 @@ namespace Vision.ObjectIdentity
 {
     public interface IIdentityFactory
     {
-        IIdentityScope<TScope,T> CreateIdentityScope<TScope, T>();
+        IIdentityScope<T> CreateIdentityScope<T>(string scope);
     }
 }

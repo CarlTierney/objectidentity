@@ -28,7 +28,7 @@ namespace Vision.ObjectIdentity
         public  T GetNextIdentity<TScope,T>() where TScope: class
         {
 
-            var idScope = _idScopes.FirstOrDefault(a => a.ForType == typeof(TScope) && a.IdType == typeof(T)) as IIdentityScope<TScope, T>;
+            var idScope = _idScopes.FirstOrDefault(a => a.Scope == typeof(TScope).Name && a.IdType == typeof(T)) as IIdentityScope<T>;
 
             if (idScope != null)
             {
@@ -37,20 +37,46 @@ namespace Vision.ObjectIdentity
 
             lock (_registrationlock)
             {
-                idScope = _idScopes.FirstOrDefault(a => a.ForType == typeof(TScope) && a.IdType == typeof(T)) as IIdentityScope<TScope, T>;
+                idScope = _idScopes.FirstOrDefault(a => a.Scope == typeof(TScope).Name && a.IdType == typeof(T)) as IIdentityScope<T>;
 
                 if (idScope != null)
                 {
                     return idScope.GetNextIdentity();
                 }
 
-                idScope = _defaultScopeFactory.CreateIdentityScope<TScope, T>();
+                idScope = _defaultScopeFactory.CreateIdentityScope<T>(typeof(TScope).Name);
                 _idScopes.Add(idScope);
                 return idScope.GetNextIdentity();
             }
 
         }
 
-        
+        public T GetNextIdentity<T>(string objectName)
+        {
+
+            var idScope = _idScopes.FirstOrDefault(a => a.Scope == objectName && a.IdType == typeof(T)) as IIdentityScope<T>;
+
+            if (idScope != null)
+            {
+                return idScope.GetNextIdentity();
+            }
+
+            lock (_registrationlock)
+            {
+                idScope = _idScopes.FirstOrDefault(a => a.Scope == objectName && a.IdType == typeof(T)) as IIdentityScope<T>;
+
+                if (idScope != null)
+                {
+                    return idScope.GetNextIdentity();
+                }
+
+                idScope = _defaultScopeFactory.CreateIdentityScope<T>(objectName);
+                _idScopes.Add(idScope);
+                return idScope.GetNextIdentity();
+            }
+
+        }
+
+
     }
 }

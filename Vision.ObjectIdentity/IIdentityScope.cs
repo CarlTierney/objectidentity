@@ -10,8 +10,6 @@ namespace Vision.ObjectIdentity
         string Scope { get; }
         Type IdType { get; }
 
-        Type ForType { get; }
-
         void RecoverSkippedIds();
 
         void CacheNextBlock();
@@ -19,7 +17,7 @@ namespace Vision.ObjectIdentity
 
 
 
-    public interface IIdentityScope<TScope, T> : IIdentityScope
+    public interface IIdentityScope<T> : IIdentityScope
     {
        
 
