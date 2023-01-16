@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient.SNI" Version="5.0.0" />
     <PackageReference Include="Pluralize.NET" Version="1.0.2" />
   </ItemGroup>
 

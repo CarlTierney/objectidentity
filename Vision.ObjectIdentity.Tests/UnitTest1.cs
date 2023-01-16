@@ -13,7 +13,8 @@ namespace Vision.ObjectIdentity.Tests
         public void TestInitializtion()
         {
 
-            var connectionString = "server=.;database=vault;integrated security=true;TrustServerCertificate=Yes";
+            var connectionString = "Server=tcp:vaultsqlsvr.database.windows.net,1433;Initial Catalog=Vault;Persist Security Info=False;User ID=vault_web;Password=Uptime@2016;MultipleActiveResultSets=True;Encrypt=True;TrustServerCertificate=True;";
+
 
             var initializer = new SqlIdentityScopeInitializer(connectionString, "dbo", 20, false);
 
