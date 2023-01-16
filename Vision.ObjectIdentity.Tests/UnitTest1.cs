@@ -22,7 +22,7 @@ namespace Vision.ObjectIdentity.Tests
 
             var manager = new IdentityManager(factory);
 
-            var id = manager.GetNextIdentity<MerchantAccount, long>();
+            var id = manager.GetNextIdentity<LedgerTransaction, long>();
 
             Assert.IsTrue(id > 0);
 
@@ -47,7 +47,7 @@ namespace Vision.ObjectIdentity.Tests
 
             for (var i = 0;   i < 100; i++)
             { 
-                var id = manager.GetNextIdentity<MerchantAccount, long>();
+                var id = manager.GetNextIdentity<LedgerTransaction, long>();
                 idsReceived.Add(id);
             }
 
@@ -97,7 +97,7 @@ namespace Vision.ObjectIdentity.Tests
 
             for (var i = 0; i < number; i++)
             {
-                var id = identityManager.GetNextIdentity<MerchantAccount, long>();
+                var id = identityManager.GetNextIdentity<LedgerTransaction, long>();
                 idsReceived.Add(id);
             }
 
@@ -107,7 +107,7 @@ namespace Vision.ObjectIdentity.Tests
         }
 
 
-        private class MerchantAccount
+        private class LedgerTransaction
         {
             public long Id { get; set; }
         }
