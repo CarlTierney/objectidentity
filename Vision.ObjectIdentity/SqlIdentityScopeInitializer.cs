@@ -166,7 +166,10 @@ namespace Vision.ObjectIdentity
                 var reader = cmd.ExecuteReader();
                 while(reader.Read())
                 {
-                    startValue = reader.GetInt64(0);
+                    if (reader.IsDBNull(0))
+                        startValue = 1;
+                    else 
+                        startValue = reader.GetInt64(0);
                 }
 
 
