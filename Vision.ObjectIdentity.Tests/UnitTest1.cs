@@ -22,6 +22,8 @@ namespace Vision.ObjectIdentity.Tests
 
             var manager = new IdentityManager(factory);
 
+            
+
             var id = manager.GetNextIdentity<LedgerTransaction, long>();
 
             Assert.IsTrue(id > 0);

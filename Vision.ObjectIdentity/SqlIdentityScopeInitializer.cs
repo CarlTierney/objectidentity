@@ -59,14 +59,14 @@ namespace Vision.ObjectIdentity
            
         }
 
-        public virtual Func<int,List<T>> Initialize<T>(string scope) 
+        public virtual Func<int,List<T>> Initialize<T>(string scope, int? startingId = null) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             if (IsInitialized(scope))
                 return IdBlockFunction<T>(scope);
 
             lock (_lock)
             {
-                var start = GetInitialStartValueForSequence(scope);
+                var start = (startingId.HasValue) ? startingId.Value : GetInitialStartValueForSequence(scope);
                 CreateSequenceIfMissingFor(scope,start);
 
                 return IdBlockFunction<T>(scope);
@@ -74,7 +74,7 @@ namespace Vision.ObjectIdentity
         }
 
 
-        protected  Func<int,List<T>> IdBlockFunction<T>(string scope)
+        protected  Func<int,List<T>> IdBlockFunction<T>(string scope) where T : struct, IComparable , IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             if(typeof(T) == typeof(int))
             {
@@ -99,6 +99,20 @@ namespace Vision.ObjectIdentity
 
                 });
             }
+
+            //TODO: add support for guid
+            //if(typeof(T) == typeof(Guid))
+            //{
+            //    return new Func<int, List<T>>((blocksize) =>
+            //    {
+
+            //        var sequencename = GetSequenceName(scope);
+            //        var results = SqlIdentityListHelper.GetGuidIds(_connectionString, sequencename, blocksize);
+            //        return results as List<T>;
+
+            //    });
+            //}
+
 
             throw new NotSupportedException($"identity type of {typeof(T).Name} is not supported for sql identity");
         }
@@ -155,6 +169,7 @@ namespace Vision.ObjectIdentity
 
         public virtual long GetInitialStartValueForSequence(string scope)
         {
+            
             long startValue = 1;
             using (var conn = new SqlConnection(_connectionString))
             {

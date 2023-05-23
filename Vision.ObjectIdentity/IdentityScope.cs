@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Vision.ObjectIdentity
 {
-    public class IdentityScope<T> : IIdentityScope<T>
+    public class IdentityScope<T> : IIdentityScope<T> where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
     {
         private Type _idType;
         private object _idLock = new object();

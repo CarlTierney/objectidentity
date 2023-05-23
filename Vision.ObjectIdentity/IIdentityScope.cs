@@ -17,7 +17,7 @@ namespace Vision.ObjectIdentity
 
 
 
-    public interface IIdentityScope<T> : IIdentityScope
+    public interface IIdentityScope<T> : IIdentityScope where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
     {
        
 

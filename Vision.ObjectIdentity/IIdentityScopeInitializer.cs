@@ -6,6 +6,9 @@ namespace Vision.ObjectIdentity
 {
     public interface IIdentityScopeInitializer
     {
-        Func<int, List<T>> Initialize<T>(string scope);
+        Func<int, List<T>> Initialize<T>(string scope, int? startingId = null) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
+
+
+
     }
 }
