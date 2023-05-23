@@ -18,7 +18,7 @@ namespace Vision.ObjectIdentity
         private IPluralize _pluralizer = new Pluralizer();
         private long _initialSafetyBuffer = 1000;
         private bool _dbInitialized = false;
-        private List<Type> _initializedTypes = new List<Type>();
+        private List<string> _initializedScopes = new List<string>();
 
 
         public SqlIdentityScopeInitializer(string connectionString, 
@@ -59,29 +59,29 @@ namespace Vision.ObjectIdentity
            
         }
 
-        public virtual Func<int,List<T>> Initialize<TScope,T>() 
+        public virtual Func<int,List<T>> Initialize<T>(string scope) 
         {
-            if (IsInitialized<TScope>())
-                return IdBlockFunction<TScope,T>();
+            if (IsInitialized(scope))
+                return IdBlockFunction<T>(scope);
 
             lock (_lock)
             {
-                var start = GetInitialStartValueForSequence<TScope>();
-                CreateSequenceIfMissingFor<TScope>(start);
+                var start = GetInitialStartValueForSequence(scope);
+                CreateSequenceIfMissingFor(scope,start);
 
-                return IdBlockFunction<TScope, T>();
+                return IdBlockFunction<T>(scope);
             }
         }
 
 
-        protected  Func<int,List<T>> IdBlockFunction<TScope,T>()
+        protected  Func<int,List<T>> IdBlockFunction<T>(string scope)
         {
             if(typeof(T) == typeof(int))
             {
                 return new Func<int, List<T>>((blocksize) =>
                 {
 
-                    var sequencename = GetSequenceName<TScope>();
+                    var sequencename = GetSequenceName(scope);
                     var results = SqlIdentityListHelper.GetIntIds(_connectionString, sequencename, blocksize);
                     return results as List<T>;
 
@@ -93,7 +93,7 @@ namespace Vision.ObjectIdentity
                 return new Func<int, List<T>>((blocksize) =>
                 {
 
-                    var sequencename = GetSequenceName<TScope>();
+                    var sequencename = GetSequenceName(scope);
                     var results = SqlIdentityListHelper.GetLongIds(_connectionString, sequencename, blocksize);
                     return results as List<T>;
 
@@ -104,9 +104,9 @@ namespace Vision.ObjectIdentity
         }
 
 
-        protected virtual bool IsInitialized<TScope>()
+        protected virtual bool IsInitialized(string scope)
         {
-            if (_initializedTypes.Any(a=> a==typeof(TScope)))
+            if (_initializedScopes.Any(a=> a== scope))
                 return true;
 
             lock(_lock)
@@ -114,7 +114,7 @@ namespace Vision.ObjectIdentity
                 using (var conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
-                    var tableName = GetTableName<TScope>();
+                    var tableName = GetTableName(scope);
 
                     var cmd = new SqlCommand($"select 1 from sys.sequences where name = '{tableName}' and schema_id = SCHEMA_ID('{_identitySchema}')", conn);
 
@@ -124,7 +124,7 @@ namespace Vision.ObjectIdentity
                         var found = reader.GetInt32(0);
                         if(found == 1)
                         {
-                            _initializedTypes.Add(typeof(TScope));
+                            _initializedScopes.Add(scope);
                             return true;
                         }
                             
@@ -137,23 +137,23 @@ namespace Vision.ObjectIdentity
             return false;
         }
 
-        public virtual string GetTableName<TScope>()
+        public virtual string GetTableName(string scope)
         {
-            var tableName = typeof(TScope).Name;
+            var tableName = scope;
             if (_isObjectNamePlural)
                 tableName = _pluralizer.Pluralize(tableName); 
 
             return tableName;
         }
 
-        public virtual string GetSequenceName<TScope>()
+        public virtual string GetSequenceName(string scope)
         {
-            var tableName = GetTableName<TScope>();
+            var tableName = GetTableName(scope);
             return $"{_identitySchema}.{tableName}";
 
         }
 
-        public virtual long GetInitialStartValueForSequence<TScope>()
+        public virtual long GetInitialStartValueForSequence(string scope)
         {
             long startValue = 1;
             using (var conn = new SqlConnection(_connectionString))
@@ -161,7 +161,7 @@ namespace Vision.ObjectIdentity
                 conn.Open();
 
                 var cmd = new SqlCommand($"select max({_identityColName}) " +
-                    $"from {_tableSchema}.{GetTableName<TScope>()}", conn);
+                    $"from {_tableSchema}.{GetTableName(scope)}", conn);
 
                 var reader = cmd.ExecuteReader();
                 while(reader.Read())
@@ -179,13 +179,13 @@ namespace Vision.ObjectIdentity
             }
         }
 
-        public virtual void CreateSequenceIfMissingFor<TScope>(long startValue)
+        public virtual void CreateSequenceIfMissingFor(string scope, long startValue)
         {
 
             using (var conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                var tableName = GetTableName<TScope>();
+                var tableName = GetTableName(scope);
                 
                 
                 var cmd = new SqlCommand($"if not exists (select 1 from sys.sequences where name = '{tableName}' and schema_id = SCHEMA_ID('{_identitySchema}'))"+
@@ -194,7 +194,7 @@ namespace Vision.ObjectIdentity
                 cmd.ExecuteNonQuery();
 
                 conn.Close();
-                _initializedTypes.Add(typeof(TScope));
+                _initializedScopes.Add(scope);
             }
         }
 
