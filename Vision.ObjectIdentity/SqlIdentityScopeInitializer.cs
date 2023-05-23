@@ -19,14 +19,16 @@ namespace Vision.ObjectIdentity
         private long _initialSafetyBuffer = 1000;
         private bool _dbInitialized = false;
         private List<string> _initializedScopes = new List<string>();
-
+        private string _idFactoryObjectOrTypeName;
 
         public SqlIdentityScopeInitializer(string connectionString, 
             string tableSchema, 
             int cacheSize,
             bool isObjectNamePlural = true,
+            string idFactoryObjectOrTypeName = "ObjectName",
             string identityColName = "Id", 
-            string identitySchema = "ids")
+            string identitySchema = "ids"
+            )
         {
             _isObjectNamePlural = isObjectNamePlural;
             _tableSchema = tableSchema;
@@ -34,6 +36,7 @@ namespace Vision.ObjectIdentity
             _connectionString = connectionString;
             _identityColName = identityColName;
             _dbInitialized = false;
+            _idFactoryObjectOrTypeName = idFactoryObjectOrTypeName;
 
             Initialize();
         }
@@ -171,20 +174,22 @@ namespace Vision.ObjectIdentity
         {
             
             long startValue = 1;
+            
             using (var conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-
-                var cmd = new SqlCommand($"select max({_identityColName}) " +
-                    $"from {_tableSchema}.{GetTableName(scope)}", conn);
-
-                var reader = cmd.ExecuteReader();
-                while(reader.Read())
+                var maxValueFound = GetMaxValueFromTableByScopeName(scope);
+                if(maxValueFound.HasValue)
                 {
-                    if (reader.IsDBNull(0))
-                        startValue = 1;
-                    else 
-                        startValue = reader.GetInt64(0);
+                    startValue = maxValueFound.Value;
+                }
+                else
+                {
+                    maxValueFound = GetMaxValueFromIdFactory(scope);
+                    if(maxValueFound.HasValue)
+                    {
+                        startValue = maxValueFound.Value;
+                    }
                 }
 
 
@@ -192,6 +197,73 @@ namespace Vision.ObjectIdentity
 
                 return startValue + _initialSafetyBuffer;
             }
+        }
+
+        protected virtual long? GetMaxValueFromIdFactory(string scope)
+        {
+            try
+            {
+                using (var conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+
+                    var cmd = new SqlCommand(   $"select LastID " +
+                                                $"from {_tableSchema}.IdFactory " +
+                                                $"WHERE {_idFactoryObjectOrTypeName} = {scope}", conn);
+
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        if (!reader.IsDBNull(0))
+                        {
+                            return reader.GetInt64(0);
+                        }
+                    }
+
+                    conn.Close();
+                }
+            }
+            catch (Exception e)
+            {
+                if (!e.Message.Contains("Invalid object name"))
+                    throw;
+            }
+
+            return null;
+
+        }
+
+        protected virtual long? GetMaxValueFromTableByScopeName(string scope)
+        {
+            try
+            {
+                using (var conn = new SqlConnection(_connectionString))
+                {
+                    conn.Open();
+
+                    var cmd = new SqlCommand($"select max({_identityColName}) " +
+                                             $"from {_tableSchema}.{GetTableName(scope)}", conn);
+
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        if (!reader.IsDBNull(0))
+                        {
+                            return reader.GetInt64(0);
+                        }
+                    }
+
+                    conn.Close();
+                }
+            }
+            catch(Exception e)
+            {
+                if (!e.Message.Contains("Invalid object name"))
+                    throw;
+            }
+
+            return null;
+
         }
 
         public virtual void CreateSequenceIfMissingFor(string scope, long startValue)
