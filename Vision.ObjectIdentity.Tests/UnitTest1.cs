@@ -13,7 +13,8 @@ namespace Vision.ObjectIdentity.Tests
         public void TestInitializtion()
         {
 
-            var connectionString = "server=.;database=vault;integrated security=true;TrustServerCertificate=Yes";
+            var connectionString = "Server=tcp:vaultsqlsvr.database.windows.net,1433;Initial Catalog=Vault;Persist Security Info=False;User ID=vault_web;Password=Uptime@2016;MultipleActiveResultSets=True;Encrypt=True;TrustServerCertificate=True;";
+
 
             var initializer = new SqlIdentityScopeInitializer(connectionString, "dbo", 20, false);
 
@@ -21,7 +22,7 @@ namespace Vision.ObjectIdentity.Tests
 
             var manager = new IdentityManager(factory);
 
-            var id = manager.GetNextIdentity<MerchantAccount, long>();
+            var id = manager.GetNextIdentity<LedgerTransaction, long>();
 
             Assert.IsTrue(id > 0);
 
@@ -46,7 +47,7 @@ namespace Vision.ObjectIdentity.Tests
 
             for (var i = 0;   i < 100; i++)
             { 
-                var id = manager.GetNextIdentity<MerchantAccount, long>();
+                var id = manager.GetNextIdentity<LedgerTransaction, long>();
                 idsReceived.Add(id);
             }
 
@@ -96,7 +97,7 @@ namespace Vision.ObjectIdentity.Tests
 
             for (var i = 0; i < number; i++)
             {
-                var id = identityManager.GetNextIdentity<MerchantAccount, long>();
+                var id = identityManager.GetNextIdentity<LedgerTransaction, long>();
                 idsReceived.Add(id);
             }
 
@@ -106,7 +107,7 @@ namespace Vision.ObjectIdentity.Tests
         }
 
 
-        private class MerchantAccount
+        private class LedgerTransaction
         {
             public long Id { get; set; }
         }
