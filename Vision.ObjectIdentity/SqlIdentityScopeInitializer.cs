@@ -24,7 +24,7 @@ namespace Vision.ObjectIdentity
         public SqlIdentityScopeInitializer(string connectionString, 
             string tableSchema, 
             int cacheSize,
-            bool isObjectNamePlural = true,
+            bool isObjectNamePlural = false,
             string idFactoryObjectOrTypeName = "ObjectName",
             string identityColName = "Id", 
             string identitySchema = "ids"
@@ -156,6 +156,7 @@ namespace Vision.ObjectIdentity
 
         public virtual string GetTableName(string scope)
         {
+            
             var tableName = scope;
             if (_isObjectNamePlural)
                 tableName = _pluralizer.Pluralize(tableName); 
@@ -209,7 +210,7 @@ namespace Vision.ObjectIdentity
 
                     var cmd = new SqlCommand(   $"select LastID " +
                                                 $"from {_tableSchema}.IdFactory " +
-                                                $"WHERE {_idFactoryObjectOrTypeName} = {scope}", conn);
+                                                $"WHERE {_idFactoryObjectOrTypeName} = '{scope}'", conn);
 
                     var reader = cmd.ExecuteReader();
                     while (reader.Read())
@@ -258,7 +259,7 @@ namespace Vision.ObjectIdentity
             }
             catch(Exception e)
             {
-                if (!e.Message.Contains("Invalid object name"))
+                if (!e.Message.Contains("Invalid object name") && !e.Message.Contains("Invalid column name"))
                     throw;
             }
 
