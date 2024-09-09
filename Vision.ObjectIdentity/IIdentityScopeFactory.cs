@@ -6,6 +6,7 @@ namespace Vision.ObjectIdentity
 {
     public interface IIdentityFactory
     {
-        IIdentityScope<T> CreateIdentityScope<T>(string scope, int? startingId = null) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
+        IIdentityScope<T> CreateIdentityScope<T>(string scope, long? startingId = null, long? maxValue = null)
+            where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
     }
 }

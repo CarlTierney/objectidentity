@@ -46,7 +46,7 @@ namespace Vision.ObjectIdentity
 
         public void CacheNextBlock()
         {
-            throw new NotImplementedException();
+           // throw new NotImplementedException();
         }
 
         public T GetNextIdentity()

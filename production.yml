@@ -66,23 +66,12 @@ jobs:
       echo CommitDate: $(GitVersion.CommitDate)
 
 
-
   - task: DotNetCoreCLI@2
-    displayName: 'Build ObjectIdentity'
-    inputs:
-      command: 'build'
-      arguments: '--configuration $(buildConfiguration)'
-      projects: './Vision.ObjectIdentity/Vision.ObjectIdentity.csproj'
-      versioningScheme: byEnvVar
-      versionEnvVar: GitVersion.SemVer
-
-  - task: DotNetCoreCLI@2
-    displayName: "ObjectIdentity Pack"
+    displayName: "ObjectIdentity Build and Pack"
     inputs:
       command: 'pack'
-      arguments: '--configuration $(buildConfiguration)'
+      arguments: '--configuration $(buildConfiguration) /p:DebugType=pdbonly'
       packagesToPack: './Vision.ObjectIdentity/Vision.ObjectIdentity.csproj'
-      nobuild: true
       versioningScheme: byEnvVar
       versionEnvVar: GitVersion.NuGetVersion
     

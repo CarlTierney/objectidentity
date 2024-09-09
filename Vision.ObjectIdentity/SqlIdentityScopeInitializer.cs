@@ -47,22 +47,32 @@ namespace Vision.ObjectIdentity
             if(_dbInitialized) return;
             lock(_lock)
             {
-                using (var conn = new SqlConnection(_connectionString))
+                try
                 {
-                    conn.Open();
+                    using (var conn = new SqlConnection(_connectionString))
+                    {
+                        conn.Open();
 
-                    var cmd = new SqlCommand($"IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = '{_identitySchema}') EXEC('create schema {_identitySchema}')", conn);
-                    cmd.ExecuteNonQuery();
+                        var cmd = new SqlCommand($"IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = '{_identitySchema}') EXEC('create schema {_identitySchema}')", conn);
+                        cmd.ExecuteNonQuery();
 
-                    conn.Close();
+                        conn.Close();
+
+                    }
+                }
+                catch (SqlException e)
+                {
+                    throw;
 
                 }
+                
                 _dbInitialized=true;
             }
            
         }
 
-        public virtual Func<int,List<T>> Initialize<T>(string scope, int? startingId = null) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        public virtual Func<int, List<T>> Initialize<T>(string scope, long? startingId = null, long? maxValue = null)
+            where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             if (IsInitialized(scope))
                 return IdBlockFunction<T>(scope);
@@ -70,7 +80,7 @@ namespace Vision.ObjectIdentity
             lock (_lock)
             {
                 var start = (startingId.HasValue) ? startingId.Value : GetInitialStartValueForSequence(scope);
-                CreateSequenceIfMissingFor(scope,start);
+                CreateSequenceIfMissingFor(scope, start, maxValue);
 
                 return IdBlockFunction<T>(scope);
             }
@@ -183,20 +193,24 @@ namespace Vision.ObjectIdentity
                 if(maxValueFound.HasValue)
                 {
                     startValue = maxValueFound.Value;
+                    return startValue + _initialSafetyBuffer;
                 }
                 else
                 {
+                    //checks the identityfactory name could be typename for core
+                    //or objectname for vault
                     maxValueFound = GetMaxValueFromIdFactory(scope);
                     if(maxValueFound.HasValue)
                     {
                         startValue = maxValueFound.Value;
+                        return startValue + _initialSafetyBuffer;
                     }
                 }
-
+                
 
                 conn.Close();
-
-                return startValue + _initialSafetyBuffer;
+                //return 1 because there is no existing ids
+                return 1;
             }
         }
 
@@ -208,9 +222,9 @@ namespace Vision.ObjectIdentity
                 {
                     conn.Open();
 
-                    var cmd = new SqlCommand(   $"select LastID " +
-                                                $"from {_tableSchema}.IdFactory " +
-                                                $"WHERE {_idFactoryObjectOrTypeName} = '{scope}'", conn);
+                    var cmd = new SqlCommand(
+                        $"select LastID from {_tableSchema}.IdFactory WHERE {_idFactoryObjectOrTypeName} = '{scope}'",
+                        conn);
 
                     var reader = cmd.ExecuteReader();
                     while (reader.Read())
@@ -227,7 +241,10 @@ namespace Vision.ObjectIdentity
             catch (Exception e)
             {
                 if (!e.Message.Contains("Invalid object name"))
-                    throw;
+                {
+                }
+
+                return null;
             }
 
             return null;
@@ -267,17 +284,25 @@ namespace Vision.ObjectIdentity
 
         }
 
-        public virtual void CreateSequenceIfMissingFor(string scope, long startValue)
+        public virtual void CreateSequenceIfMissingFor(string scope, long startValue, long? maxValue)
         {
 
             using (var conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
                 var tableName = GetTableName(scope);
-                
-                
-                var cmd = new SqlCommand($"if not exists (select 1 from sys.sequences where name = '{tableName}' and schema_id = SCHEMA_ID('{_identitySchema}'))"+
-                            $" create sequence {_identitySchema}.{tableName} as bigint start with {startValue} increment by 1 cache {100}", conn);
+
+                SqlCommand cmd = null;
+                if (!maxValue.HasValue)
+                    cmd = new SqlCommand(
+                        $"if not exists (select 1 from sys.sequences where name = '{tableName}' and schema_id = SCHEMA_ID('{_identitySchema}'))" +
+                        $" create sequence {_identitySchema}.{tableName} as bigint start with {startValue} increment by 1 cache {100}",
+                        conn);
+                else
+                    cmd = new SqlCommand(
+                        $"if not exists (select 1 from sys.sequences where name = '{tableName}' and schema_id = SCHEMA_ID('{_identitySchema}'))" +
+                        $" create sequence {_identitySchema}.{tableName} as bigint start with {startValue} increment by 1 cache {100} maxvalue {maxValue.Value} cycle",
+                        conn);
 
                 cmd.ExecuteNonQuery();
 
