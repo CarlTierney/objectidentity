@@ -1,61 +1,52 @@
 ﻿using Microsoft.Data.SqlClient;
 using Pluralize.NET;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Data;
 using System.Threading.Tasks;
-
 
 namespace Vision.ObjectIdentity
 {
     public class IdentityScope<T> : IIdentityScope<T> where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
     {
-        private Type _idType;
-        private object _idLock = new object();
-        
-        private int _blockSize;
-        private Queue<T> _availableIds;
-        private string _scope;
-        private Func<int,List<T>> _blockFunction;
+        private readonly Type _idType;
+        private readonly object _idLock = new object();
+        private readonly int _blockSize;
+        private readonly ConcurrentQueue<T> _availableIds;
+        private readonly string _scope;
+        private readonly Func<int, List<T>> _blockFunction;
         private bool _gettingNextBlock;
         private Task _activeBlockFunction;
-        private object _nextBlockLock = new object();
+        private readonly object _nextBlockLock = new object();
 
-        public IdentityScope(          
+        public IdentityScope(
             int blockSize,
             string scope,
-            Func<int,List<T>> blockFunction
+            Func<int, List<T>> blockFunction
             )
         {
             _idType = typeof(T);
             _scope = scope;
             _blockSize = blockSize;
             _blockFunction = blockFunction;
-            _availableIds = new Queue<T>();
+            _availableIds = new ConcurrentQueue<T>();
         }
-
-       
 
         public Type IdType => _idType;
 
         public string Scope => _scope;
 
-        
-
-        
-
         public void CacheNextBlock()
         {
-           // throw new NotImplementedException();
+            // Not implemented
         }
 
         public T GetNextIdentity()
         {
-            lock(_idLock)
+            lock (_idLock)
             {
-                return GetNextId();                
+                return GetNextId();
             }
-            
         }
 
         public void RecoverSkippedIds()
@@ -63,81 +54,82 @@ namespace Vision.ObjectIdentity
             throw new NotImplementedException();
         }
 
-       
         private T GetNextId()
         {
-            lock(_idLock)
+            lock (_idLock)
             {
-                if(_availableIds.Count > _blockSize*.2)
+                if (_availableIds.Count > _blockSize * 0.2)
                 {
-                    return _availableIds.Dequeue();
+                    if (_availableIds.TryDequeue(out var id))
+                    {
+                        return id;
+                    }
                 }
 
-                if(_availableIds.Count > 0)
+                if (_availableIds.Count > 0)
                 {
                     AddNextBlock();
-                    return _availableIds.Dequeue();
+                    if (_availableIds.TryDequeue(out var id))
+                    {
+                        return id;
+                    }
                 }
 
-                if(_availableIds.Count == 0)
+                if (_availableIds.Count == 0)
                 {
-                    
-                    if(_gettingNextBlock && _activeBlockFunction != null)
+                    if (_gettingNextBlock && _activeBlockFunction != null)
                     {
                         _activeBlockFunction.Wait();
-                        if (_availableIds.Count > 0)
-                            return _availableIds.Dequeue();
+                        if (_availableIds.TryDequeue(out var nid))
+                        {
+                            return nid;
+                        }
                     }
 
                     AddNextBlock().Wait();
-                    
-                    return _availableIds.Dequeue();    
-                    
-                    
-                    
-                    
-
-                                        
+                    if (_availableIds.TryDequeue(out var id))
+                    {
+                        return id;
+                    }
                 }
 
-                throw new Exception($"Unable to get next id for {_scope}");
+                throw new InvalidOperationException($"Unable to get next id for {_scope}");
             }
-          
-              
         }
-
 
         private Task AddNextBlock()
         {
-            if(_gettingNextBlock)
+            if (_gettingNextBlock)
             {
                 return _activeBlockFunction;
             }
 
-            if (_availableIds.Count > _blockSize * .2)
+            if (_availableIds.Count > _blockSize * 0.2)
+            {
                 return Task.CompletedTask;
+            }
 
             return GetNextBlock();
-
         }
 
         private Task GetNextBlock()
         {
-           lock(_nextBlockLock)
+            lock (_nextBlockLock)
             {
-
                 _gettingNextBlock = true;
                 _activeBlockFunction = Task.Run(() =>
                 {
                     var result = _blockFunction(_blockSize);
                     foreach (var x in result)
+                    {
                         _availableIds.Enqueue(x);
+                    }
                 }).ContinueWith((e) =>
                 {
-                    if(e.IsFaulted)
+                    if (e.IsFaulted)
                     {
                         _gettingNextBlock = false;
-                        throw e.Exception;
+                        throw new InvalidOperationException("Failed to get the next block of IDs.", e.Exception);
                     }
                     else
                     {
@@ -149,11 +141,5 @@ namespace Vision.ObjectIdentity
                 return _activeBlockFunction;
             }
         }
-
-       
-
-      
     }
-
-   
 }

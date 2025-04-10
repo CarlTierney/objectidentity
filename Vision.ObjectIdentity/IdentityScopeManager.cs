@@ -1,32 +1,24 @@
 ﻿using Pluralize.NET;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Vision.ObjectIdentity
 {
-
     /// <summary>
     /// Identity manager is thread safe
     /// You only need one identity manager per database
     /// </summary>
     public class IdentityManager
     {
-       
-        
-        private object _registrationlock = new object();
-        private List<IIdentityScope> _idScopes = new List<IIdentityScope>();
-        private IIdentityFactory _defaultScopeFactory;
-        
-       
+        private readonly object _registrationlock = new object();
+        private readonly ConcurrentDictionary<string, IIdentityScope> _idScopes = new ConcurrentDictionary<string, IIdentityScope>();
+        private readonly IIdentityFactory _defaultScopeFactory;
+
         public IdentityManager(IIdentityFactory scopeFactory)
         {
             _defaultScopeFactory = scopeFactory;
         }
-
 
         /// <summary>
         /// Only use this when you specifically have to set the initial starting id
@@ -36,23 +28,20 @@ namespace Vision.ObjectIdentity
         /// <typeparam name="T"></typeparam>
         /// <param name="scopeName"></param>
         /// <param name="startingId"></param>
-        /// <exception cref="InvalidCastException"></exception>
+        /// <exception cref="ArgumentException"></exception>
         public void IntializeScope<T>(string scopeName, int startingId) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             lock (_registrationlock)
             {
-                var idScope = _idScopes.FirstOrDefault(a => a.Scope == scopeName && a.IdType == typeof(T)) as IIdentityScope<T>;
-
-                if (idScope != null)
+                if (_idScopes.ContainsKey(scopeName))
                 {
                     throw new ArgumentException($"Identity scope {scopeName} already exists for type {typeof(T).Name}");
                 }
 
-                idScope = _defaultScopeFactory.CreateIdentityScope<T>(scopeName, startingId);
-                _idScopes.Add(idScope);
+                var idScope = _defaultScopeFactory.CreateIdentityScope<T>(scopeName, startingId);
+                _idScopes[scopeName] = idScope;
             }
         }
-
 
         /// <summary>
         /// Only use this when you specifically have to set the initial starting id
@@ -62,30 +51,27 @@ namespace Vision.ObjectIdentity
         /// <typeparam name="TScope"></typeparam>
         /// <typeparam name="T"></typeparam>
         /// <param name="startingId"></param>
-        /// <exception cref="InvalidCastException"></exception>
-        public void InitializeScoepe<TScope,T>(int startingId) where TScope : class
-                                              where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        /// <exception cref="ArgumentException"></exception>
+        public void InitializeScope<TScope, T>(int startingId) where TScope : class
+                                                               where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
+            var scopeName = typeof(TScope).Name;
             lock (_registrationlock)
             {
-                var idScope = _idScopes.FirstOrDefault(a => a.Scope == typeof(TScope).Name && a.IdType == typeof(T)) as IIdentityScope<T>;
-
-                if (idScope != null)
+                if (_idScopes.ContainsKey(scopeName))
                 {
-                    throw new ArgumentException($"Identity scope {typeof(TScope).Name} already exists for type {typeof(T).Name}");
+                    throw new ArgumentException($"Identity scope {scopeName} already exists for type {typeof(T).Name}");
                 }
 
-                idScope = _defaultScopeFactory.CreateIdentityScope<T>(typeof(TScope).Name, startingId);
-                _idScopes.Add(idScope);
+                var idScope = _defaultScopeFactory.CreateIdentityScope<T>(scopeName, startingId);
+                _idScopes[scopeName] = idScope;
             }
         }
 
-
-
         /// <summary>
-        /// Automatically intializes the scope if a sequence for this object does not already exist by checking the database
+        /// Automatically initializes the scope if a sequence for this object does not already exist by checking the database
         /// for the maximum value in the table with the same type name and adding a buffer to that max id 
-        /// it will then generate a squence for that table with the same name as the type
+        /// it will then generate a sequence for that table with the same name as the type
         /// and grab ids for it
         /// </summary>
         /// <typeparam name="TScope"></typeparam>
@@ -94,28 +80,8 @@ namespace Vision.ObjectIdentity
         public T GetNextIdentity<TScope, T>() where TScope : class
                                               where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
-
-            var idScope = _idScopes.FirstOrDefault(a => a.Scope == typeof(TScope).Name && a.IdType == typeof(T)) as IIdentityScope<T>;
-
-            if (idScope != null)
-            {
-                return idScope.GetNextIdentity();
-            }
-
-            lock (_registrationlock)
-            {
-                idScope = _idScopes.FirstOrDefault(a => a.Scope == typeof(TScope).Name && a.IdType == typeof(T)) as IIdentityScope<T>;
-
-                if (idScope != null)
-                {
-                    return idScope.GetNextIdentity();
-                }
-
-                idScope = _defaultScopeFactory.CreateIdentityScope<T>(typeof(TScope).Name);
-                _idScopes.Add(idScope);
-                return idScope.GetNextIdentity();
-            }
-
+            var scopeName = typeof(TScope).Name;
+            return GetNextIdentityInternal<T>(scopeName);
         }
 
         /// <summary>
@@ -128,30 +94,27 @@ namespace Vision.ObjectIdentity
         /// <returns></returns>
         public T GetNextIdentity<T>(string objectName) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
+            return GetNextIdentityInternal<T>(objectName);
+        }
 
-            var idScope = _idScopes.FirstOrDefault(a => a.Scope == objectName && a.IdType == typeof(T)) as IIdentityScope<T>;
-
-            if (idScope != null)
+        private T GetNextIdentityInternal<T>(string scopeName) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        {
+            if (_idScopes.TryGetValue(scopeName, out var idScope))
             {
-                return idScope.GetNextIdentity();
+                return ((IIdentityScope<T>)idScope).GetNextIdentity();
             }
 
             lock (_registrationlock)
             {
-                idScope = _idScopes.FirstOrDefault(a => a.Scope == objectName && a.IdType == typeof(T)) as IIdentityScope<T>;
-
-                if (idScope != null)
+                if (_idScopes.TryGetValue(scopeName, out idScope))
                 {
-                    return idScope.GetNextIdentity();
+                    return ((IIdentityScope<T>)idScope).GetNextIdentity();
                 }
 
-                idScope = _defaultScopeFactory.CreateIdentityScope<T>(objectName);
-                _idScopes.Add(idScope);
-                return idScope.GetNextIdentity();
+                var newIdScope = _defaultScopeFactory.CreateIdentityScope<T>(scopeName);
+                _idScopes[scopeName] = newIdScope;
+                return newIdScope.GetNextIdentity();
             }
-
         }
-
-
     }
 }

@@ -1,9 +1,9 @@
 ﻿using Microsoft.Data.SqlClient;
 using Pluralize.NET;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Vision.ObjectIdentity
 {
@@ -18,15 +18,15 @@ namespace Vision.ObjectIdentity
         private IPluralize _pluralizer = new Pluralizer();
         private long _initialSafetyBuffer = 1000;
         private bool _dbInitialized = false;
-        private List<string> _initializedScopes = new List<string>();
+        private ConcurrentDictionary<string, bool> _initializedScopes = new ConcurrentDictionary<string, bool>();
         private string _idFactoryObjectOrTypeName;
 
-        public SqlIdentityScopeInitializer(string connectionString, 
-            string tableSchema, 
+        public SqlIdentityScopeInitializer(string connectionString,
+            string tableSchema,
             int cacheSize,
             bool isObjectNamePlural = false,
             string idFactoryObjectOrTypeName = "ObjectName",
-            string identityColName = "Id", 
+            string identityColName = "Id",
             string identitySchema = "ids"
             )
         {
@@ -41,34 +41,29 @@ namespace Vision.ObjectIdentity
             Initialize();
         }
 
-
         public virtual void Initialize()
         {
-            if(_dbInitialized) return;
-            lock(_lock)
+            if (_dbInitialized) return;
+            lock (_lock)
             {
                 try
                 {
                     using (var conn = new SqlConnection(_connectionString))
                     {
                         conn.Open();
-
-                        var cmd = new SqlCommand($"IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = '{_identitySchema}') EXEC('create schema {_identitySchema}')", conn);
-                        cmd.ExecuteNonQuery();
-
-                        conn.Close();
-
+                        using (var cmd = new SqlCommand($"IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = '{_identitySchema}') EXEC('create schema {_identitySchema}')", conn))
+                        {
+                            cmd.ExecuteNonQuery();
+                        }
                     }
                 }
                 catch (SqlException e)
                 {
-                    throw;
-
+                    throw new InvalidOperationException("Failed to initialize the database schema.", e);
                 }
-                
-                _dbInitialized=true;
+
+                _dbInitialized = true;
             }
-           
         }
 
         public virtual Func<int, List<T>> Initialize<T>(string scope, long? startingId = null, long? maxValue = null)
@@ -79,86 +74,59 @@ namespace Vision.ObjectIdentity
 
             lock (_lock)
             {
-                var start = (startingId.HasValue) ? startingId.Value : GetInitialStartValueForSequence(scope);
+                var start = startingId ?? GetInitialStartValueForSequence(scope);
                 CreateSequenceIfMissingFor(scope, start, maxValue);
 
                 return IdBlockFunction<T>(scope);
             }
         }
 
-
-        protected  Func<int,List<T>> IdBlockFunction<T>(string scope) where T : struct, IComparable , IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        protected Func<int, List<T>> IdBlockFunction<T>(string scope) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
-            if(typeof(T) == typeof(int))
+            if (typeof(T) == typeof(int))
             {
-                return new Func<int, List<T>>((blocksize) =>
+                return blocksize =>
                 {
-
                     var sequencename = GetSequenceName(scope);
                     var results = SqlIdentityListHelper.GetIntIds(_connectionString, sequencename, blocksize);
                     return results as List<T>;
-
-                });
+                };
             }
 
             if (typeof(T) == typeof(long))
             {
-                return new Func<int, List<T>>((blocksize) =>
+                return blocksize =>
                 {
-
                     var sequencename = GetSequenceName(scope);
                     var results = SqlIdentityListHelper.GetLongIds(_connectionString, sequencename, blocksize);
                     return results as List<T>;
-
-                });
+                };
             }
 
-            //TODO: add support for guid
-            //if(typeof(T) == typeof(Guid))
-            //{
-            //    return new Func<int, List<T>>((blocksize) =>
-            //    {
-
-            //        var sequencename = GetSequenceName(scope);
-            //        var results = SqlIdentityListHelper.GetGuidIds(_connectionString, sequencename, blocksize);
-            //        return results as List<T>;
-
-            //    });
-            //}
-
-
-            throw new NotSupportedException($"identity type of {typeof(T).Name} is not supported for sql identity");
+            throw new NotSupportedException($"Identity type of {typeof(T).Name} is not supported for SQL identity.");
         }
-
 
         protected virtual bool IsInitialized(string scope)
         {
-            if (_initializedScopes.Any(a=> a== scope))
+            if (_initializedScopes.ContainsKey(scope))
                 return true;
 
-            lock(_lock)
+            lock (_lock)
             {
                 using (var conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
                     var tableName = GetTableName(scope);
 
-                    var cmd = new SqlCommand($"select 1 from sys.sequences where name = '{tableName}' and schema_id = SCHEMA_ID('{_identitySchema}')", conn);
-
-                    var reader = cmd.ExecuteReader();
-                    while (reader.Read())
+                    using (var cmd = new SqlCommand($"SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')", conn))
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        var found = reader.GetInt32(0);
-                        if(found == 1)
+                        if (reader.Read() && reader.GetInt32(0) == 1)
                         {
-                            _initializedScopes.Add(scope);
+                            _initializedScopes[scope] = true;
                             return true;
                         }
-                            
                     }
-
-                    conn.Close();
-                    
                 }
             }
             return false;
@@ -166,10 +134,9 @@ namespace Vision.ObjectIdentity
 
         public virtual string GetTableName(string scope)
         {
-            
             var tableName = scope;
             if (_isObjectNamePlural)
-                tableName = _pluralizer.Pluralize(tableName); 
+                tableName = _pluralizer.Pluralize(tableName);
 
             return tableName;
         }
@@ -178,40 +145,33 @@ namespace Vision.ObjectIdentity
         {
             var tableName = GetTableName(scope);
             return $"{_identitySchema}.{tableName}";
-
         }
 
         public virtual long GetInitialStartValueForSequence(string scope)
         {
-            
             long startValue = 1;
-            
+
             using (var conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
                 var maxValueFound = GetMaxValueFromTableByScopeName(scope);
-                if(maxValueFound.HasValue)
+                if (maxValueFound.HasValue)
                 {
                     startValue = maxValueFound.Value;
                     return startValue + _initialSafetyBuffer;
                 }
                 else
                 {
-                    //checks the identityfactory name could be typename for core
-                    //or objectname for vault
                     maxValueFound = GetMaxValueFromIdFactory(scope);
-                    if(maxValueFound.HasValue)
+                    if (maxValueFound.HasValue)
                     {
                         startValue = maxValueFound.Value;
                         return startValue + _initialSafetyBuffer;
                     }
                 }
-                
-
-                conn.Close();
-                //return 1 because there is no existing ids
-                return 1;
             }
+
+            return startValue;
         }
 
         protected virtual long? GetMaxValueFromIdFactory(string scope)
@@ -222,33 +182,25 @@ namespace Vision.ObjectIdentity
                 {
                     conn.Open();
 
-                    var cmd = new SqlCommand(
-                        $"select LastID from {_tableSchema}.IdFactory WHERE {_idFactoryObjectOrTypeName} = '{scope}'",
-                        conn);
-
-                    var reader = cmd.ExecuteReader();
-                    while (reader.Read())
+                    using (var cmd = new SqlCommand($"SELECT LastID FROM {_tableSchema}.IdFactory WHERE {_idFactoryObjectOrTypeName} = '{scope}'", conn))
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        if (!reader.IsDBNull(0))
+                        if (reader.Read() && !reader.IsDBNull(0))
                         {
                             return reader.GetInt64(0);
                         }
                     }
-
-                    conn.Close();
                 }
             }
-            catch (Exception e)
+            catch (SqlException e)
             {
                 if (!e.Message.Contains("Invalid object name"))
                 {
+                    throw new InvalidOperationException("Failed to retrieve max value from IdFactory.", e);
                 }
-
-                return null;
             }
 
             return null;
-
         }
 
         protected virtual long? GetMaxValueFromTableByScopeName(string scope)
@@ -259,65 +211,45 @@ namespace Vision.ObjectIdentity
                 {
                     conn.Open();
 
-                    var cmd = new SqlCommand($"select max({_identityColName}) " +
-                                             $"from {_tableSchema}.{GetTableName(scope)}", conn);
-
-                    var reader = cmd.ExecuteReader();
-                    while (reader.Read())
+                    using (var cmd = new SqlCommand($"SELECT MAX({_identityColName}) FROM {_tableSchema}.{GetTableName(scope)}", conn))
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        if (!reader.IsDBNull(0))
+                        if (reader.Read() && !reader.IsDBNull(0))
                         {
                             return reader.GetInt64(0);
                         }
                     }
-
-                    conn.Close();
                 }
             }
-            catch(Exception e)
+            catch (SqlException e)
             {
                 if (!e.Message.Contains("Invalid object name") && !e.Message.Contains("Invalid column name"))
-                    throw;
+                {
+                    throw new InvalidOperationException("Failed to retrieve max value from table by scope name.", e);
+                }
             }
 
             return null;
-
         }
 
         public virtual void CreateSequenceIfMissingFor(string scope, long startValue, long? maxValue)
         {
-
             using (var conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
                 var tableName = GetTableName(scope);
 
-                SqlCommand cmd = null;
-                if (!maxValue.HasValue)
-                    cmd = new SqlCommand(
-                        $"if not exists (select 1 from sys.sequences where name = '{tableName}' and schema_id = SCHEMA_ID('{_identitySchema}'))" +
-                        $" create sequence {_identitySchema}.{tableName} as bigint start with {startValue} increment by 1 cache {100}",
-                        conn);
-                else
-                    cmd = new SqlCommand(
-                        $"if not exists (select 1 from sys.sequences where name = '{tableName}' and schema_id = SCHEMA_ID('{_identitySchema}'))" +
-                        $" create sequence {_identitySchema}.{tableName} as bigint start with {startValue} increment by 1 cache {100} maxvalue {maxValue.Value} cycle",
-                        conn);
+                string sql = maxValue.HasValue
+                    ? $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE {_identitySchema}.{tableName} AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100 MAXVALUE {maxValue.Value} CYCLE"
+                    : $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE {_identitySchema}.{tableName} AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100";
 
-                cmd.ExecuteNonQuery();
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
 
-                conn.Close();
-                _initializedScopes.Add(scope);
+                _initializedScopes[scope] = true;
             }
         }
-
-
-       
-
-
     }
-
-       
-
-    
 }
