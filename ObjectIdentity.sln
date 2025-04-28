@@ -7,11 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectIdentity.Tests", "Obj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectIdentity", "ObjectIdentity\ObjectIdentity.csproj", "{E11F2214-B031-4E94-BACD-4509481D33B4}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".devops", ".devops", "{1F0BC7D9-F4AA-455E-9DE2-68289EE64075}"
-	ProjectSection(SolutionItems) = preProject
-		production.yml = production.yml
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

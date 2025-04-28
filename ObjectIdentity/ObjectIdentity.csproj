@@ -23,8 +23,5 @@
     <PackageReference Include="Pluralize.NET" Version="1.0.2" />
 
   </ItemGroup>
-  <ItemGroup>
-    <None Include="../README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
 
 </Project>
