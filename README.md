@@ -21,28 +21,39 @@ A library for generating unique IDs for objects prior to their being saved to th
 
 The ObjectIdentity library provides a flexible system for generating unique IDs with a SQL Server backend. Start by initializing the core components:
 
-csharp // Create the initializer with your database connection var initializer = new SqlIdentityScopeInitializer(connectionString, "dbo", false);
-// Create the factory using the initializer var factory = new IdentityScopeFactory(initializer);
-// Create the identity manager that will generate IDs var manager = new IdentityManager(factory);
-
+<pre><code class='language-cs'>
+    // Create the initializer with your database connection 
+  var initializer = new SqlIdentityScopeInitializer(connectionString, "dbo", false);
+// Create the factory using the initializer 
+  var factory = new IdentityScopeFactory(initializer);
+// Create the identity manager that will generate IDs
+  var manager = new IdentityManager(factory);
+</code>
+</pre>
 
 ### Getting IDs
 
 Once configured, you can request IDs for your domain objects:
 
-csharp // Get the next available ID for a LedgerTransaction long id = manager.GetNextIdentity<LedgerTransaction, long>();
-// Use the ID in your domain object var transaction = new LedgerTrans
-
+<pre><code class='language-cs'>
+// Get the next available ID for an object such as LedgerTransaction
+  long id = manager.GetNextIdentity<LedgerTransaction, long>();
+</code>
+</pre>
 
 ### Custom Starting Values
 
 You can initialize scopes with specific starting values:
 
-
-csharp // Initialize a scope with a specific starting ID manager.IntializeScope ("CustomScope", 1000); 
-// Or use a type to define the scope manager.InitializeScope<MyEntityType, long>(1000);
-// Get IDs from the initialized scope long id = manager.GetNextIden
-
+<pre><code class='language-cs'>
+    // Initialize a scope with a specific starting ID
+    manager.IntializeScope ("CustomScope", 1000); 
+    // Or use a type to define the scope 
+    manager.InitializeScope<MyEntityType, long>(1000);
+    // Get IDs from the initialized 
+    scope long id = manager.GetNextIdentity<MyEntityType,long>();
+</code>
+</pre>
 ### Concurrent Usage
 
 The library is designed for thread-safe operation in multi-threaded environments:
