@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ObjectIdentity.Tests</RootNamespace>
+    <AssemblyName>ObjectIdentity.Tests</AssemblyName>
+    <LangVersion>latestmajor</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="microsoft.extensions.configuration" Version="9.0.4" />
+    <PackageReference Include="microsoft.extensions.configuration.environmentvariables" Version="9.0.4" />
+    <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.4" />
+    <PackageReference Include="microsoft.extensions.configuration.usersecrets" Version="9.0.4" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.1.2" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.1.2" />
+    
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ObjectIdentity\ObjectIdentity.csproj" />
+  </ItemGroup>
+</Project>

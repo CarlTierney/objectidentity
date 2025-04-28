@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Vision.ObjectIdentity
+namespace ObjectIdentity
 {
     public interface IIdentityScope
     {

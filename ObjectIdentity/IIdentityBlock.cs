@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Vision.ObjectIdentity
+namespace ObjectIdentity
 {
     public interface IIdentityBlock<T> where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
     {

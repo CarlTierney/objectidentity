@@ -5,10 +5,13 @@
 
 # User-specific files
 *.rsuser
+*.idea
+*.vs
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+*.packages
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
