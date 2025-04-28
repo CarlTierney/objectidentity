@@ -23,11 +23,11 @@ The ObjectIdentity library provides a flexible system for generating unique IDs 
 
 <pre><code class='language-cs'>
     // Create the initializer with your database connection 
-  var initializer = new SqlIdentityScopeInitializer(connectionString, "dbo", false);
-// Create the factory using the initializer 
-  var factory = new IdentityScopeFactory(initializer);
-// Create the identity manager that will generate IDs
-  var manager = new IdentityManager(factory);
+    var initializer = new SqlIdentityScopeInitializer(connectionString, "dbo", false);
+    // Create the factory using the initializer 
+    var factory = new IdentityScopeFactory(initializer);
+    // Create the identity manager that will generate IDs
+    var manager = new IdentityManager(factory);
 </code>
 </pre>
 
@@ -36,8 +36,8 @@ The ObjectIdentity library provides a flexible system for generating unique IDs 
 Once configured, you can request IDs for your domain objects:
 
 <pre><code class='language-cs'>
-// Get the next available ID for an object such as LedgerTransaction
-  long id = manager.GetNextIdentity<LedgerTransaction, long>();
+    // Get the next available ID for an object such as LedgerTransaction
+    long id = manager.GetNextIdentity<LedgerTransaction, long>();
 </code>
 </pre>
 
@@ -55,25 +55,27 @@ You can initialize scopes with specific starting values:
 </code>
 </pre>
 ### Concurrent Usage
-
 The library is designed for thread-safe operation in multi-threaded environments:
-csharp // Create tasks that generate IDs concurrently var tasks = new List<Task<List >>(); 
-for (var i = 0; i < 10; i++) { var task = Task.Run(() => { var ids = new List (); for (var j = 0; j < 1000; j++) { ids. Add(manager. GetNextIdentity<MyEntity, long>()); } return ids; }); 
-tasks.Add(task);
-}
-// Wait for all tasks to complete Task.WaitAll(tasks);
-// All generated IDs are guaranteed to be unique across threads
 
-### Configuration Options
-
-When creating the SQL initializer, you can customize various aspects:
-csharp var initializer = new SqlIdentityScopeInitializer( connectionString, // Your database connection string ;
-
-### Complete Example
-
-csharp // Setup configuration to get connection string var config = new ConfigurationBuilder() .AddJsonFile("appsettings.json") .AddEnvironmentVariables() .Build();
-string connectionString = config.GetConnectionString("MyDatabase");
-// Initialize components var initializer = new SqlIdentityScopeInitializer(connectionString, "dbo", false); var factory = new IdentityScopeFactory(initializer); var manager = new IdentityManager(factory);
-// Initialize scope with starting ID manager.InitializeScope<Customer, long>(1000);
-// Generate IDs for new entities var customer = new Customer { Id = manager.GetNextIdentity<Customer, long>(), Name = "New Customer" };
-// IDs can be generated in batches for performance var batchOfIds = new List (); for (int i = 0; i < 100; i++) { batchOfIds. Add(manager. GetNextIdentity<Order, long>()); }
+<pre><code class='language-cs'>
+    // Create tasks that generate IDs concurrently var tasks = new List<Task<List >>(); 
+        for (var i = 0; i < 10; i++) 
+        {
+            var task = Task.Run(() => 
+                { 
+                    var ids = new List (); 
+                    for (var j = 0; j < 1000; j++)
+                    { 
+                        ids. Add(manager. GetNextIdentity<MyEntity, long>()); 
+                    }
+                    return ids; 
+                }); 
+            tasks.Add(task);
+        }
+    // Wait for all tasks to complete 
+        Task.WaitAll(tasks);
+                            
+    // All generated IDs are guaranteed to be unique across threads
+                            
+</code>
+</pre>
