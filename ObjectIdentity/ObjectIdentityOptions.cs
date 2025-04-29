@@ -2,7 +2,7 @@
 namespace ObjectIdentity;
 
 public class ObjectIdentityOptions
-{
+{  
     public string ConnectionString { get; set; } = string.Empty;
     public string TableSchema { get; set; } = "dbo";
     public string IdentitySchema { get; set; } = "ids";

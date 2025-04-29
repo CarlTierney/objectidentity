@@ -4,23 +4,34 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ObjectIdentity
 {
     public static class SqlIdentityListHelper
     {
-       
-       
+        /// <summary>
+        /// Gets a block of IDs from a SQL sequence with generic type support
+        /// </summary>
+        public static List<T> GetIds<T>(string connectionString, string sequenceName, int blockSize) 
+            where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        {
+            return GetIdsAsync<T>(connectionString, sequenceName, blockSize).GetAwaiter().GetResult();
+        }
 
-        public static List<long> GetLongIds(string connectionString, string sequenceName, int blockSize)
+        /// <summary>
+        /// Gets a block of IDs from a SQL sequence with generic type support asynchronously
+        /// </summary>
+        public static async Task<List<T>> GetIdsAsync<T>(string connectionString, string sequenceName, int blockSize, CancellationToken cancellationToken = default)
+            where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             using (var conn = new SqlConnection(connectionString))
             {
-
-
-                conn.Open();
-                var cmd = new SqlCommand("sys.sp_sequence_get_range", conn);
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                await conn.OpenAsync(cancellationToken);
+                
+                using var cmd = new SqlCommand("sys.sp_sequence_get_range", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@sequence_name", sequenceName);
                 cmd.Parameters.AddWithValue("@range_size", blockSize);
                 cmd.Parameters.Add("@range_first_value", SqlDbType.Variant);
@@ -28,64 +39,45 @@ namespace ObjectIdentity
                 cmd.Parameters.Add("@range_last_value", SqlDbType.Variant);
                 cmd.Parameters["@range_last_value"].Direction = ParameterDirection.Output;
 
-                cmd.ExecuteNonQuery();
-
-
-                var start = System.Convert.ToInt64(cmd.Parameters["@range_first_value"].Value);
-                var end = System.Convert.ToInt64(cmd.Parameters["@range_last_value"].Value);
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
                 
-
-
-
-
-                conn.Close();
-
-                var ids = new List<long>();
-                for (var i = start; i <= end; i++)
-                    ids.Add(i);
+                // Retrieve the range values
+                dynamic start = cmd.Parameters["@range_first_value"].Value;
+                dynamic end = cmd.Parameters["@range_last_value"].Value;
+                
+                // Create a list of the appropriate type
+                var ids = new List<T>();
+                
+                // Add values to the list with type conversion
+                for (dynamic i = start; i <= end; i++)
+                {
+                    ids.Add((T)Convert.ChangeType(i, typeof(T)));
+                }
 
                 return ids;
-
             }
         }
 
+        // Legacy methods that defer to the new generic method
+        public static List<long> GetLongIds(string connectionString, string sequenceName, int blockSize)
+        {
+            return GetIds<long>(connectionString, sequenceName, blockSize);
+        }
 
         public static List<int> GetIntIds(string connectionString, string sequenceName, int blockSize)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
+            return GetIds<int>(connectionString, sequenceName, blockSize);
+        }
+        
+        // Async versions of legacy methods
+        public static Task<List<long>> GetLongIdsAsync(string connectionString, string sequenceName, int blockSize, CancellationToken cancellationToken = default)
+        {
+            return GetIdsAsync<long>(connectionString, sequenceName, blockSize, cancellationToken);
+        }
 
-
-                conn.Open();
-                var cmd = new SqlCommand("sys.sp_sequence_get_range", conn);
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@sequence_name", sequenceName);
-                cmd.Parameters.AddWithValue("@range_size", blockSize);
-                cmd.Parameters.Add("@range_first_value", SqlDbType.Variant);
-                cmd.Parameters["@range_first_value"].Direction = ParameterDirection.Output;
-                cmd.Parameters.Add("@range_last_value", SqlDbType.Variant);
-                cmd.Parameters["@range_last_value"].Direction = ParameterDirection.Output;
-
-                cmd.ExecuteNonQuery();
-
-
-                var start = System.Convert.ToInt32(cmd.Parameters["@range_first_value"].Value);
-                var end = System.Convert.ToInt32(cmd.Parameters["@range_last_value"].Value);
-
-
-
-
-
-                conn.Close();
-
-                var ids = new List<int>();
-                for (var i = start; i <= end; i++)
-                    ids.Add(i);
-
-                return ids;
-
-            }
+        public static Task<List<int>> GetIntIdsAsync(string connectionString, string sequenceName, int blockSize, CancellationToken cancellationToken = default)
+        {
+            return GetIdsAsync<int>(connectionString, sequenceName, blockSize, cancellationToken);
         }
     }
-
 }

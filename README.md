@@ -43,11 +43,15 @@ long id = manager.GetNextIdentity<LedgerTransaction, long>();
 You can still manually construct the components if you need more control:
 
 <pre><code class='language-cs'>
-// Create the initializer with your database connection 
-var initializer = new SqlIdentityScopeInitializer(connectionString, "dbo", false);
-// Create the factory using the initializer 
-var factory = new IdentityScopeFactory(initializer);
-// Create the identity manager that will generate IDs
+using Microsoft.Extensions.Options;
+using ObjectIdentity;
+
+var options = Options.Create(new ObjectIdentityOptions {
+    ConnectionString = "your-connection-string",
+    TableSchema = "dbo"
+});
+var store = new SqlIdentityStore(options);
+var factory = new IdentityFactory(store, options);
 var manager = new IdentityManager(factory);
 </code></pre>
 
