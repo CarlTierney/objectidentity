@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Pluralize.NET;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -21,22 +22,16 @@ namespace ObjectIdentity
         private ConcurrentDictionary<string, bool> _initializedScopes = new ConcurrentDictionary<string, bool>();
         private string _idFactoryObjectOrTypeName;
 
-        public SqlIdentityScopeInitializer(string connectionString,
-            string tableSchema,
-            bool isObjectNamePlural = false,
-            string idFactoryObjectOrTypeName = "ObjectName",
-            string identityColName = "Id",
-            string identitySchema = "ids"
-            )
+        public SqlIdentityScopeInitializer(IOptions<ObjectIdentityOptions> options)
         {
-            _isObjectNamePlural = isObjectNamePlural;
-            _tableSchema = tableSchema;
-            _identitySchema = identitySchema;
-            _connectionString = connectionString;
-            _identityColName = identityColName;
+            var opts = options.Value;
+            _connectionString = opts.ConnectionString;
+            _tableSchema = opts.TableSchema;
+            _identitySchema = opts.IdentitySchema;
+            _isObjectNamePlural = opts.IsObjectNamePlural;
+            _idFactoryObjectOrTypeName = opts.IdFactoryObjectOrTypeName;
+            _identityColName = opts.IdentityColName;
             _dbInitialized = false;
-            _idFactoryObjectOrTypeName = idFactoryObjectOrTypeName;
-
             Initialize();
         }
 
