@@ -13,6 +13,20 @@ using Microsoft.Extensions.Logging;
 
 namespace ObjectIdentity
 {
+    /// <summary>
+    /// SQL Server implementation of <see cref="IIdentityStore"/> that uses SQL Server sequences for ID generation.
+    /// </summary>
+    /// <remarks>
+    /// This implementation provides high-performance, distributed, and reliable ID generation using SQL Server sequences.
+    /// It includes features such as:
+    /// <list type="bullet">
+    /// <item><description>Circuit breaker pattern for handling transient errors</description></item>
+    /// <item><description>Caching of initialized scopes for performance</description></item>
+    /// <item><description>Automatic sequence creation with appropriate starting values</description></item>
+    /// <item><description>Support for both synchronous and asynchronous operations</description></item>
+    /// <item><description>Telemetry for monitoring and diagnostics</description></item>
+    /// </list>
+    /// </remarks>
     public class SqlIdentityStore : IIdentityStore
     {
         private readonly string _connectionString;
@@ -31,17 +45,23 @@ namespace ObjectIdentity
         private readonly ConcurrentDictionary<string, bool> _initializedScopes = new ConcurrentDictionary<string, bool>();
         private readonly string _idFactoryObjectOrTypeName;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SqlIdentityStore"/> class.
+        /// </summary>
+        /// <param name="options">Configuration options for the identity store.</param>
+        /// <param name="telemetry">Optional telemetry provider for monitoring and performance tracking.</param>
+        /// <param name="logger">Optional logger for diagnostic information.</param>
         public SqlIdentityStore(IOptions<ObjectIdentityOptions> options, 
             IObjectIdentityTelemetry telemetry = null, 
             ILogger<SqlIdentityStore> logger = null)
         {
-            var opts = options.Value;
-            _connectionString = opts.ConnectionString;
-            _tableSchema = opts.TableSchema;
-            _identitySchema = opts.IdentitySchema;
+            var opts = options.Value ?? throw new ArgumentNullException(nameof(options));
+            _connectionString = opts.ConnectionString ?? throw new ArgumentException("Connection string cannot be null", nameof(options));
+            _tableSchema = opts.TableSchema ?? "dbo";
+            _identitySchema = opts.IdentitySchema ?? "Identity";
             _isObjectNamePlural = opts.IsObjectNamePlural;
-            _idFactoryObjectOrTypeName = opts.IdFactoryObjectOrTypeName;
-            _identityColName = opts.IdentityColName;
+            _idFactoryObjectOrTypeName = opts.IdFactoryObjectOrTypeName ?? "ObjectOrTypeName";
+            _identityColName = opts.IdentityColName ?? "Id";
             _telemetry = telemetry;
             _logger = logger;
             
@@ -122,6 +142,13 @@ namespace ObjectIdentity
             });
         }
 
+        /// <summary>
+        /// Initializes the identity store by ensuring the required database schema exists.
+        /// </summary>
+        /// <remarks>
+        /// This method creates the identity schema in the database if it doesn't already exist.
+        /// It uses a lock to ensure thread safety and implements a double-check pattern to minimize locking.
+        /// </remarks>
         public virtual void Initialize()
         {
             if (_dbInitialized) return;
@@ -142,6 +169,15 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Initializes the identity store asynchronously by ensuring the required database schema exists.
+        /// </summary>
+        /// <param name="cancellationToken">A token that can be used to cancel the asynchronous operation.</param>
+        /// <returns>A task representing the asynchronous initialization operation.</returns>
+        /// <remarks>
+        /// This method creates the identity schema in the database if it doesn't already exist.
+        /// It uses an async lock to ensure thread safety in asynchronous operations.
+        /// </remarks>
         public virtual async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
             if (_dbInitialized) return;
@@ -164,6 +200,18 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Initializes a scope and returns a function to get ID blocks.
+        /// </summary>
+        /// <typeparam name="T">The type of IDs to generate (e.g., int, long).</typeparam>
+        /// <param name="scope">The name of the scope to initialize.</param>
+        /// <param name="startingId">Optional starting ID value for the scope.</param>
+        /// <param name="maxValue">Optional maximum ID value allowed for this scope.</param>
+        /// <returns>A function that takes a block size and returns a list of sequential IDs.</returns>
+        /// <remarks>
+        /// If the scope is already initialized, this method returns the existing ID block function.
+        /// Otherwise, it creates a new sequence in the database with the appropriate starting value.
+        /// </remarks>
         public virtual Func<int, List<T>> Initialize<T>(string scope, long? startingId = null, long? maxValue = null)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
@@ -181,6 +229,19 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Initializes a scope asynchronously and returns a function to get ID blocks asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type of IDs to generate (e.g., int, long).</typeparam>
+        /// <param name="scope">The name of the scope to initialize.</param>
+        /// <param name="startingId">Optional starting ID value for the scope.</param>
+        /// <param name="maxValue">Optional maximum ID value allowed for this scope.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains a function that takes a block size and returns a task yielding a list of sequential IDs.</returns>
+        /// <remarks>
+        /// If the scope is already initialized, this method returns the existing asynchronous ID block function.
+        /// Otherwise, it creates a new sequence in the database with the appropriate starting value.
+        /// </remarks>
         public virtual async Task<Func<int, Task<List<T>>>> InitializeAsync<T>(string scope, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
@@ -227,6 +288,15 @@ namespace ObjectIdentity
             };
         }
 
+        /// <summary>
+        /// Checks if a specific scope has been initialized in the storage system.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <returns><c>true</c> if the scope has been initialized; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// This method first checks an in-memory cache of initialized scopes for performance.
+        /// If the scope is not found in the cache, it queries the database to check if the corresponding sequence exists.
+        /// </remarks>
         public virtual bool IsInitialized(string scope)
         {
             if (_initializedScopes.TryGetValue(scope, out var isInitialized) && isInitialized)
@@ -255,6 +325,16 @@ namespace ObjectIdentity
             return false;
         }
 
+        /// <summary>
+        /// Checks asynchronously if a specific scope has been initialized in the storage system.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result is <c>true</c> if the scope has been initialized; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// This method first checks an in-memory cache of initialized scopes for performance.
+        /// If the scope is not found in the cache, it queries the database to check if the corresponding sequence exists.
+        /// </remarks>
         public virtual async Task<bool> IsInitializedAsync(string scope, CancellationToken cancellationToken = default)
         {
             if (_initializedScopes.TryGetValue(scope, out var isInitialized) && isInitialized)
@@ -283,6 +363,15 @@ namespace ObjectIdentity
             });
         }
 
+        /// <summary>
+        /// Gets the table name for a scope, applying pluralization if configured.
+        /// </summary>
+        /// <param name="scope">The scope name to convert to a table name.</param>
+        /// <returns>The table name for the scope.</returns>
+        /// <remarks>
+        /// If <see cref="ObjectIdentityOptions.IsObjectNamePlural"/> is set to true,
+        /// this method will pluralize the scope name using the Pluralize.NET library.
+        /// </remarks>
         public virtual string GetTableName(string scope)
         {
             var tableName = scope;
@@ -292,14 +381,36 @@ namespace ObjectIdentity
             return tableName;
         }
 
+        /// <summary>
+        /// Gets the fully-qualified sequence name for a scope.
+        /// </summary>
+        /// <param name="scope">The scope name to get the sequence name for.</param>
+        /// <returns>The fully-qualified sequence name (schema.sequence).</returns>
         public virtual string GetSequenceName(string scope)
         {
             var tableName = GetTableName(scope);
             return $"{_identitySchema}.{tableName}";
         }
 
+        /// <summary>
+        /// Gets the recommended starting ID for a new scope based on existing data.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <returns>The recommended starting ID value, typically based on existing data with a safety buffer.</returns>
+        /// <remarks>
+        /// This method delegates to <see cref="GetInitialStartValueForSequence"/> to determine the appropriate starting value.
+        /// </remarks>
         public virtual long GetInitialStartValueForScope(string scope) => GetInitialStartValueForSequence(scope);
 
+        /// <summary>
+        /// Gets the recommended starting ID for a new scope based on existing data asynchronously.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains the recommended starting ID value.</returns>
+        /// <remarks>
+        /// This method delegates to <see cref="GetInitialStartValueForSequenceAsync"/> to determine the appropriate starting value.
+        /// </remarks>
         public virtual async Task<long> GetInitialStartValueForScopeAsync(string scope, CancellationToken cancellationToken = default)
             => await GetInitialStartValueForSequenceAsync(scope, cancellationToken);
 
@@ -499,6 +610,18 @@ namespace ObjectIdentity
             _initializedScopes[scope] = true;
         }
 
+        /// <summary>
+        /// Gets the next block of sequential IDs for the specified scope.
+        /// </summary>
+        /// <typeparam name="T">The type of IDs to generate (e.g., int, long).</typeparam>
+        /// <param name="scope">The name of the scope to get IDs for.</param>
+        /// <param name="blockSize">The number of IDs to retrieve in this block.</param>
+        /// <param name="startingId">Optional starting ID value for a new scope.</param>
+        /// <param name="maxValue">Optional maximum ID value allowed for this scope.</param>
+        /// <returns>A list of sequential ID values of type <typeparamref name="T"/>.</returns>
+        /// <remarks>
+        /// This method ensures the scope is initialized before retrieving the ID block.
+        /// </remarks>
         public List<T> GetNextIdBlock<T>(string scope, int blockSize, long? startingId = null, long? maxValue = null)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
@@ -510,6 +633,19 @@ namespace ObjectIdentity
             return blockFunc(blockSize);
         }
 
+        /// <summary>
+        /// Gets the next block of sequential IDs for the specified scope asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type of IDs to generate (e.g., int, long).</typeparam>
+        /// <param name="scope">The name of the scope to get IDs for.</param>
+        /// <param name="blockSize">The number of IDs to retrieve in this block.</param>
+        /// <param name="startingId">Optional starting ID value for a new scope.</param>
+        /// <param name="maxValue">Optional maximum ID value allowed for this scope.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains a list of sequential ID values of type <typeparamref name="T"/>.</returns>
+        /// <remarks>
+        /// This method ensures the scope is initialized before retrieving the ID block.
+        /// </remarks>
         public async Task<List<T>> GetNextIdBlockAsync<T>(string scope, int blockSize, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
@@ -521,29 +657,52 @@ namespace ObjectIdentity
         }
     }
 
-    // Helper class for async locking
+    /// <summary>
+    /// Provides an asynchronous locking mechanism for use in asynchronous methods.
+    /// </summary>
+    /// <remarks>
+    /// This class combines a <see cref="SemaphoreSlim"/> for asynchronous waiting with a 
+    /// standard lock for complete thread safety.
+    /// </remarks>
     internal class AsyncLock
     {
         private readonly SemaphoreSlim _semaphore;
         private readonly object _syncLock;
         
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AsyncLock"/> class.
+        /// </summary>
+        /// <param name="syncLock">The synchronization object to use for the lock.</param>
         public AsyncLock(object syncLock)
         {
             _semaphore = new SemaphoreSlim(1, 1);
             _syncLock = syncLock;
         }
         
+        /// <summary>
+        /// Asynchronously acquires the lock.
+        /// </summary>
+        /// <param name="cancellationToken">A token that can be used to cancel the lock acquisition.</param>
+        /// <returns>A task representing the asynchronous operation. The task result is a disposable object that releases the lock when disposed.</returns>
         public async Task<IDisposable> LockAsync(CancellationToken cancellationToken = default)
         {
             await _semaphore.WaitAsync(cancellationToken);
             return new ReleaseHandle(_semaphore, _syncLock);
         }
         
+        /// <summary>
+        /// A disposable object that releases the lock when disposed.
+        /// </summary>
         private class ReleaseHandle : IDisposable
         {
             private readonly SemaphoreSlim _semaphore;
             private readonly object _syncLock;
             
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ReleaseHandle"/> class.
+            /// </summary>
+            /// <param name="semaphore">The semaphore to release.</param>
+            /// <param name="syncLock">The synchronization object to exit.</param>
             public ReleaseHandle(SemaphoreSlim semaphore, object syncLock)
             {
                 _semaphore = semaphore;
@@ -551,6 +710,9 @@ namespace ObjectIdentity
                 Monitor.Enter(_syncLock);
             }
             
+            /// <summary>
+            /// Releases the lock.
+            /// </summary>
             public void Dispose()
             {
                 Monitor.Exit(_syncLock);

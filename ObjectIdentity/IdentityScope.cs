@@ -6,6 +6,24 @@ using System.Threading.Tasks;
 
 namespace ObjectIdentity
 {
+    /// <summary>
+    /// Implements a thread-safe identity scope that efficiently manages and distributes unique IDs.
+    /// </summary>
+    /// <typeparam name="T">The type of IDs this scope generates (e.g., int, long).</typeparam>
+    /// <remarks>
+    /// <para>
+    /// IdentityScope retrieves blocks of sequential IDs from the underlying storage and efficiently
+    /// distributes them to callers without requiring a database call for each ID. It includes features
+    /// such as:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>Adaptive block sizing based on usage patterns</description></item>
+    ///   <item><description>Automatic prefetching to minimize latency</description></item>
+    ///   <item><description>Thread-safe operations with minimal locking</description></item>
+    ///   <item><description>Performance monitoring and telemetry</description></item>
+    ///   <item><description>Support for both synchronous and asynchronous operations</description></item>
+    /// </list>
+    /// </remarks>
     public class IdentityScope<T> : IIdentityScope<T> where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
     {
         private readonly Type _idType;
@@ -28,6 +46,18 @@ namespace ObjectIdentity
         private int _idsFetchedSinceLastAdjustment = 0;
         private readonly IObjectIdentityTelemetry _telemetry;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IdentityScope{T}"/> class with a synchronous block function.
+        /// </summary>
+        /// <param name="blockSize">The initial size of ID blocks to retrieve from storage.</param>
+        /// <param name="scope">The name of this identity scope, typically corresponding to an entity type or table.</param>
+        /// <param name="blockFunction">A function that retrieves blocks of sequential IDs from storage.</param>
+        /// <param name="telemetry">Optional telemetry provider for monitoring and performance tracking.</param>
+        /// <remarks>
+        /// The <paramref name="blockFunction"/> is called to retrieve blocks of sequential IDs
+        /// when the cache of available IDs runs low. It takes a block size parameter and returns
+        /// a list of IDs to be distributed to callers.
+        /// </remarks>
         public IdentityScope(
             int blockSize,
             string scope,
@@ -36,9 +66,9 @@ namespace ObjectIdentity
             )
         {
             _idType = typeof(T);
-            _scope = scope;
-            _currentBlockSize = blockSize;
-            _blockFunction = blockFunction;
+            _scope = scope ?? throw new ArgumentNullException(nameof(scope));
+            _currentBlockSize = blockSize > 0 ? blockSize : throw new ArgumentException("Block size must be greater than zero", nameof(blockSize));
+            _blockFunction = blockFunction ?? throw new ArgumentNullException(nameof(blockFunction));
             _availableIds = new ConcurrentQueue<T>();
             _telemetry = telemetry;
             
@@ -53,6 +83,18 @@ namespace ObjectIdentity
             };
         }
         
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IdentityScope{T}"/> class with an asynchronous block function.
+        /// </summary>
+        /// <param name="blockSize">The initial size of ID blocks to retrieve from storage.</param>
+        /// <param name="scope">The name of this identity scope, typically corresponding to an entity type or table.</param>
+        /// <param name="asyncBlockFunction">An asynchronous function that retrieves blocks of sequential IDs from storage.</param>
+        /// <param name="telemetry">Optional telemetry provider for monitoring and performance tracking.</param>
+        /// <remarks>
+        /// The <paramref name="asyncBlockFunction"/> is called to retrieve blocks of sequential IDs
+        /// when the cache of available IDs runs low. It takes a block size parameter and returns
+        /// a task that yields a list of IDs to be distributed to callers.
+        /// </remarks>
         public IdentityScope(
             int blockSize,
             string scope,
@@ -61,9 +103,9 @@ namespace ObjectIdentity
             )
         {
             _idType = typeof(T);
-            _scope = scope;
-            _currentBlockSize = blockSize;
-            _asyncBlockFunction = asyncBlockFunction;
+            _scope = scope ?? throw new ArgumentNullException(nameof(scope));
+            _currentBlockSize = blockSize > 0 ? blockSize : throw new ArgumentException("Block size must be greater than zero", nameof(blockSize));
+            _asyncBlockFunction = asyncBlockFunction ?? throw new ArgumentNullException(nameof(asyncBlockFunction));
             _availableIds = new ConcurrentQueue<T>();
             _telemetry = telemetry;
             
@@ -78,15 +120,39 @@ namespace ObjectIdentity
             };
         }
 
+        /// <summary>
+        /// Gets the data type of IDs this scope generates (e.g., int, long).
+        /// </summary>
         public Type IdType => _idType;
 
+        /// <summary>
+        /// Gets the name of this identity scope, typically corresponding to an entity type or table.
+        /// </summary>
         public string Scope => _scope;
         
-        // Implement the interface properties for monitoring
+        /// <summary>
+        /// Gets the current block size being used for this scope.
+        /// </summary>
+        /// <remarks>
+        /// The block size may adjust dynamically based on usage patterns to optimize performance.
+        /// </remarks>
         public int CurrentBlockSize => _currentBlockSize;
         
+        /// <summary>
+        /// Gets the count of available IDs in the current queue.
+        /// </summary>
+        /// <remarks>
+        /// This value represents how many IDs are immediately available without requesting a new block.
+        /// </remarks>
         public int AvailableIdsCount => _availableIds.Count;
 
+        /// <summary>
+        /// Proactively caches the next block of IDs to prevent delays when getting new IDs.
+        /// </summary>
+        /// <remarks>
+        /// Call this method to prefetch IDs in advance of needing them to improve performance
+        /// by avoiding blocking operations when requesting new IDs.
+        /// </remarks>
         public void CacheNextBlock()
         {
             // Start fetching a new block if needed
@@ -96,6 +162,15 @@ namespace ObjectIdentity
             }
         }
         
+        /// <summary>
+        /// Asynchronously caches the next block of IDs to prevent delays when getting new IDs.
+        /// </summary>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        /// <remarks>
+        /// Call this method to prefetch IDs in advance of needing them to improve performance
+        /// by avoiding blocking operations when requesting new IDs.
+        /// </remarks>
         public async Task CacheNextBlockAsync(CancellationToken cancellationToken = default)
         {
             // Start fetching a new block if needed
@@ -105,6 +180,20 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Gets the next identity value synchronously.
+        /// </summary>
+        /// <returns>The next unique ID value of type <typeparamref name="T"/>.</returns>
+        /// <remarks>
+        /// <para>
+        /// This method is thread-safe and will block if it needs to fetch a new block of IDs.
+        /// For non-blocking behavior, consider using <see cref="CacheNextBlock"/> in advance
+        /// or use the asynchronous method <see cref="GetNextIdentityAsync"/>.
+        /// </para>
+        /// <para>
+        /// The method also handles adaptive block sizing to optimize performance based on usage patterns.
+        /// </para>
+        /// </remarks>
         public T GetNextIdentity()
         {
             // Track for adaptive block sizing
@@ -150,6 +239,20 @@ namespace ObjectIdentity
             return GetIdWithBlockFetch();
         }
         
+        /// <summary>
+        /// Gets the next identity value asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the next unique ID value.</returns>
+        /// <remarks>
+        /// <para>
+        /// This method is the non-blocking alternative to <see cref="GetNextIdentity"/> and is
+        /// recommended for use in asynchronous applications to avoid thread blocking.
+        /// </para>
+        /// <para>
+        /// The method also handles adaptive block sizing to optimize performance based on usage patterns.
+        /// </para>
+        /// </remarks>
         public async Task<T> GetNextIdentityAsync(CancellationToken cancellationToken = default)
         {
             // Track for adaptive block sizing
@@ -195,12 +298,34 @@ namespace ObjectIdentity
             return await GetIdWithBlockFetchAsync(cancellationToken);
         }
 
+        /// <summary>
+        /// Recovers IDs that were skipped or not used.
+        /// </summary>
+        /// <remarks>
+        /// This operation helps reuse IDs that were allocated but never used,
+        /// which can happen in certain failure scenarios.
+        /// </remarks>
+        /// <exception cref="NotImplementedException">
+        /// This method is currently not implemented and will throw an exception if called.
+        /// </exception>
         public void RecoverSkippedIds()
         {
             // This method is still a placeholder for future implementation
             throw new NotImplementedException("RecoverSkippedIds is not yet implemented");
         }
         
+        /// <summary>
+        /// Recovers IDs that were skipped or not used asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        /// <remarks>
+        /// This operation helps reuse IDs that were allocated but never used,
+        /// which can happen in certain failure scenarios.
+        /// </remarks>
+        /// <exception cref="NotImplementedException">
+        /// This method is currently not implemented and will throw an exception if called.
+        /// </exception>
         public Task RecoverSkippedIdsAsync(CancellationToken cancellationToken = default)
         {
             // This method is still a placeholder for future implementation
