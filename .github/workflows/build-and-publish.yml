@@ -29,7 +29,7 @@ jobs:
           --health-interval 15s
           --health-timeout 10s
           --health-retries 10
-          --health-start-period 90s
+          --health-start-period 120s
 
       
     
@@ -37,8 +37,22 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0 # Ensures all history and tags are fetched for versioning
-    
- 
+
+    - name: Wait for SQL Server to be ready
+      run: |
+        for i in {1..10}; do
+        if [ "$(docker inspect -f {{.State.Health.Status}} sql)" == "healthy" ]; then
+         echo "SQL Server is ready."
+         break
+        fi
+        echo "Waiting for SQL Server to be ready..."
+        sleep 10
+        done
+        if [ "$(docker inspect -f {{.State.Health.Status}} sql)" != "healthy" ]; then
+        echo "SQL Server failed to initialize."
+        exit 1
+        fi
+        
     - name: Set up SQL Test DB
       run: |
          # Wait for SQL Server to initialize
