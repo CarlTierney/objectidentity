@@ -24,8 +24,10 @@ namespace ObjectIdentity.Tests
         /// </summary>
         public static string GetTestDbConnectionString()
         {
-            return _configuration.Value.GetConnectionString("testdb")
-                ?? "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true;Database=SequentialIdTests;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            var connString = _configuration.Value.GetConnectionString("testdb");
+            
+           
+            return connString;
         }
 
         /// <summary>

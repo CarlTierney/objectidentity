@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-publish:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     
     steps:
     - uses: actions/checkout@v3
@@ -22,6 +22,19 @@ jobs:
         dotnet-version: |
           6.0.x
           8.0.x
+    
+    - name: Install SQL Server LocalDB
+      shell: powershell
+      run: |
+        # Install LocalDB using winget
+        winget install Microsoft.SqlServer.2019.LocalDB
+
+        # Create test database 
+        sqllocaldb create MSSQLLocalDB -s
+        sqlcmd -S "(localdb)\MSSQLLocalDB" -Q "CREATE DATABASE SequentialIdTests"
+        
+        # Verify LocalDB is running
+        sqllocaldb info MSSQLLocalDB
     
     - name: Restore dependencies
       run: dotnet restore
