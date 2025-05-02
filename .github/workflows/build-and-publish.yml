@@ -30,7 +30,6 @@ jobs:
           --health-timeout 10s
           --health-retries 10
           --health-start-period 90s
-
           - name: Create Test Database
             run: |
               # Wait for SQL Server to be ready
