@@ -44,7 +44,7 @@ jobs:
          # Wait for SQL Server to initialize
           sleep 60
           # Create the test database
-          docker exec -it sql-server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "SecretsAreHandicapped@2025!" \
+          docker exec -it sql /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "SecretsAreHandicapped@2025!" \
             -Q "CREATE DATABASE SequentialIdTests"
         
     - name: Setup .NET
