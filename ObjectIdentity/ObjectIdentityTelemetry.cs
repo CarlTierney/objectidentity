@@ -35,7 +35,7 @@ public interface IObjectIdentityTelemetry
     /// } // Operation ends and duration is automatically recorded when the scope is disposed
     /// </code>
     /// </remarks>
-    IDisposable StartOperation(string operationName, string context);
+    IDisposable StartOperation(string operationName, string? context);
     
     /// <summary>
     /// Tracks a metric value such as block size, queue length, or other numerical data.
@@ -52,7 +52,7 @@ public interface IObjectIdentityTelemetry
     ///   <item><description>ID consumption rate</description></item>
     /// </list>
     /// </remarks>
-    void TrackMetric(string metricName, double value, string context = null);
+    void TrackMetric(string metricName, double value, string? context = null);
     
     /// <summary>
     /// Tracks an exception that occurred during ID generation or processing.
@@ -63,7 +63,7 @@ public interface IObjectIdentityTelemetry
     /// Exception tracking is crucial for identifying and troubleshooting issues in the ID generation system,
     /// particularly transient errors related to database connectivity or resource contention.
     /// </remarks>
-    void TrackException(Exception exception, string context = null);
+    void TrackException(Exception exception, string? context = null);
 }
 
 /// <summary>
@@ -99,7 +99,7 @@ public class DefaultObjectIdentityTelemetry : IObjectIdentityTelemetry
     /// <param name="operationName">The name of the operation being performed.</param>
     /// <param name="context">Additional context information, typically the scope name.</param>
     /// <returns>A disposable scope that records the operation duration when disposed.</returns>
-    public IDisposable StartOperation(string operationName, string context)
+    public IDisposable StartOperation(string operationName, string? context)
     {
         return new OperationScope(_logger, operationName, context);
     }
@@ -110,7 +110,7 @@ public class DefaultObjectIdentityTelemetry : IObjectIdentityTelemetry
     /// <param name="metricName">The name of the metric being recorded.</param>
     /// <param name="value">The value of the metric.</param>
     /// <param name="context">Optional additional context information.</param>
-    public void TrackMetric(string metricName, double value, string context = null)
+    public void TrackMetric(string metricName, double value, string? context = null)
     {
         _logger.LogDebug("{MetricName}: {Value} {Context}", metricName, value, context ?? string.Empty);
     }
@@ -120,7 +120,7 @@ public class DefaultObjectIdentityTelemetry : IObjectIdentityTelemetry
     /// </summary>
     /// <param name="exception">The exception that was thrown.</param>
     /// <param name="context">Optional additional context information.</param>
-    public void TrackException(Exception exception, string context = null)
+    public void TrackException(Exception exception, string? context = null)
     {
         _logger.LogError(exception, "Exception in ObjectIdentity {Context}", context ?? string.Empty);
     }
@@ -132,7 +132,7 @@ public class DefaultObjectIdentityTelemetry : IObjectIdentityTelemetry
     {
         private readonly ILogger _logger;
         private readonly string _operationName;
-        private readonly string _context;
+        private readonly string? _context;
         private readonly Stopwatch _stopwatch;
         
         /// <summary>
@@ -141,7 +141,7 @@ public class DefaultObjectIdentityTelemetry : IObjectIdentityTelemetry
         /// <param name="logger">The logger to use for recording operation events.</param>
         /// <param name="operationName">The name of the operation being timed.</param>
         /// <param name="context">Additional context information about the operation.</param>
-        public OperationScope(ILogger logger, string operationName, string context)
+        public OperationScope(ILogger logger, string operationName, string? context)
         {
             _logger = logger;
             _operationName = operationName;

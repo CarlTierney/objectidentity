@@ -46,7 +46,7 @@ namespace ObjectIdentity
         /// The factory initializes the scope with the identity store, which ensures the underlying
         /// database objects are created and properly configured.
         /// </remarks>
-        public IIdentityScope<T> CreateIdentityScope<T>(string scope, long? startingId = null, long? maxValue = null, int? idBlockSize = null)
+        public IIdentityScope<T> CreateIdentityScope<T>(string? scope, long? startingId = null, long? maxValue = null, int? idBlockSize = null)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             var blockFunc = _identityStore.Initialize<T>(scope, startingId, maxValue);
@@ -68,7 +68,7 @@ namespace ObjectIdentity
         /// This is the asynchronous version of <see cref="CreateIdentityScope{T}"/> and is recommended
         /// for use in asynchronous applications.
         /// </remarks>
-        public async Task<IIdentityScope<T>> CreateIdentityScopeAsync<T>(string scope, long? startingId = null, long? maxValue = null, int? idBlockSize = null, CancellationToken cancellationToken = default)
+        public async Task<IIdentityScope<T>> CreateIdentityScopeAsync<T>(string? scope, long? startingId = null, long? maxValue = null, int? idBlockSize = null, CancellationToken cancellationToken = default)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             var blockFunc = await _identityStore.InitializeAsync<T>(scope, startingId, maxValue, cancellationToken);

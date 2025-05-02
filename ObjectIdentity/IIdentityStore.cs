@@ -39,7 +39,7 @@ public interface IIdentityStore
     /// A scope is considered initialized when a corresponding sequence or other
     /// storage mechanism exists for generating IDs for that scope.
     /// </remarks>
-    bool IsInitialized(string scope);
+    bool IsInitialized(string? scope);
     
     /// <summary>
     /// Checks asynchronously if a specific scope has been initialized in the storage system.
@@ -51,7 +51,7 @@ public interface IIdentityStore
     /// This is the asynchronous version of <see cref="IsInitialized"/> and is recommended
     /// for use in asynchronous applications.
     /// </remarks>
-    Task<bool> IsInitializedAsync(string scope, CancellationToken cancellationToken = default);
+    Task<bool> IsInitializedAsync(string? scope, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Gets the next block of sequential IDs for the specified scope.
@@ -66,7 +66,7 @@ public interface IIdentityStore
     /// This method retrieves a block of sequential IDs from the storage system,
     /// which can then be handed out individually without requiring additional database calls.
     /// </remarks>
-    List<T> GetNextIdBlock<T>(string scope, int blockSize, long? startingId = null, long? maxValue = null) 
+    List<T> GetNextIdBlock<T>(string? scope, int blockSize, long? startingId = null, long? maxValue = null) 
         where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
     
     /// <summary>
@@ -83,7 +83,7 @@ public interface IIdentityStore
     /// This is the asynchronous version of <see cref="GetNextIdBlock{T}"/> and is recommended
     /// for use in asynchronous applications.
     /// </remarks>
-    Task<List<T>> GetNextIdBlockAsync<T>(string scope, int blockSize, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
+    Task<List<T>> GetNextIdBlockAsync<T>(string? scope, int blockSize, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
         where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
     
     /// <summary>
@@ -95,7 +95,7 @@ public interface IIdentityStore
     /// This method checks existing tables/data to determine an appropriate starting value
     /// for a new scope, typically by finding the maximum existing ID and adding a safety buffer.
     /// </remarks>
-    long GetInitialStartValueForScope(string scope);
+    long GetInitialStartValueForScope(string? scope);
     
     /// <summary>
     /// Gets the recommended starting ID for a new scope based on existing data asynchronously.
@@ -107,7 +107,7 @@ public interface IIdentityStore
     /// This is the asynchronous version of <see cref="GetInitialStartValueForScope"/> and is recommended
     /// for use in asynchronous applications.
     /// </remarks>
-    Task<long> GetInitialStartValueForScopeAsync(string scope, CancellationToken cancellationToken = default);
+    Task<long> GetInitialStartValueForScopeAsync(string? scope, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Initializes a scope and returns a function to get ID blocks.
@@ -121,7 +121,7 @@ public interface IIdentityStore
     /// This method creates or ensures the existence of a scope in the storage system,
     /// and returns a delegate that can be called to retrieve blocks of IDs for that scope.
     /// </remarks>
-    Func<int, List<T>> Initialize<T>(string scope, long? startingId = null, long? maxValue = null)
+    Func<int, List<T>> Initialize<T>(string? scope, long? startingId = null, long? maxValue = null)
         where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
         
     /// <summary>
@@ -137,6 +137,6 @@ public interface IIdentityStore
     /// This is the asynchronous version of <see cref="Initialize{T}"/> and is recommended
     /// for use in asynchronous applications.
     /// </remarks>
-    Task<Func<int, Task<List<T>>>> InitializeAsync<T>(string scope, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
+    Task<Func<int, Task<List<T>>>> InitializeAsync<T>(string? scope, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
         where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
 }

@@ -18,7 +18,7 @@ namespace ObjectIdentity
         /// <summary>
         /// Gets the name of this scope, typically corresponding to an entity type or table name.
         /// </summary>
-        string Scope { get; }
+        string? Scope { get; }
 
         /// <summary>
         /// Gets the data type of IDs this scope generates (e.g., int, long).
@@ -98,7 +98,7 @@ namespace ObjectIdentity
         /// <returns>The next unique ID value of type <typeparamref name="T"/>.</returns>
         /// <remarks>
         /// This method is thread-safe and will block if it needs to fetch a new block of IDs.
-        /// For non-blocking behavior, consider using <see cref="CacheNextBlock"/> in advance
+        /// For non-blocking behavior, consider using in advance
         /// or use the asynchronous method <see cref="GetNextIdentityAsync"/>.
         /// </remarks>
         T GetNextIdentity();

@@ -42,7 +42,7 @@ namespace ObjectIdentity
         /// The identity factory will automatically attempt to determine an appropriate starting value
         /// by checking the maximum existing value in the corresponding table.
         /// </remarks>
-        public void IntializeScope<T>(string scopeName, int startingId) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        public void IntializeScope<T>(string? scopeName, int startingId) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             lock (_registrationlock)
             {
@@ -110,7 +110,7 @@ namespace ObjectIdentity
         /// Automatically initializes the scope if it doesn't exist by checking the database
         /// for the maximum value in the table with the same name and adding a buffer to that max ID.
         /// </remarks>
-        public T GetNextIdentity<T>(string objectName) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        public T GetNextIdentity<T>(string? objectName) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             return GetNextIdentityInternal<T>(objectName);
         }
@@ -144,12 +144,12 @@ namespace ObjectIdentity
         /// Automatically initializes the scope if it doesn't exist by checking the database
         /// for the maximum value in the table with the same name and adding a buffer to that max ID.
         /// </remarks>
-        public async Task<T> GetNextIdentityAsync<T>(string objectName, CancellationToken cancellationToken = default) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        public async Task<T> GetNextIdentityAsync<T>(string? objectName, CancellationToken cancellationToken = default) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             return await GetNextIdentityInternalAsync<T>(objectName, cancellationToken);
         }
 
-        private T GetNextIdentityInternal<T>(string scopeName) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        private T GetNextIdentityInternal<T>(string? scopeName) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             if (_idScopes.TryGetValue(scopeName, out var idScope))
             {
@@ -169,7 +169,7 @@ namespace ObjectIdentity
             }
         }
 
-        private async Task<T> GetNextIdentityInternalAsync<T>(string scopeName, CancellationToken cancellationToken) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+        private async Task<T> GetNextIdentityInternalAsync<T>(string? scopeName, CancellationToken cancellationToken) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             if (_idScopes.TryGetValue(scopeName, out var idScope))
             {

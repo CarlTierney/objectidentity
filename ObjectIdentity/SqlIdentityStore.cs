@@ -37,8 +37,8 @@ namespace ObjectIdentity
         private readonly string _identityColName;
         private readonly IPluralize _pluralizer = new Pluralizer();
         private readonly long _initialSafetyBuffer = 1000;
-        private readonly IObjectIdentityTelemetry _telemetry;
-        private readonly ILogger<SqlIdentityStore> _logger;
+        private readonly IObjectIdentityTelemetry? _telemetry;
+        private readonly ILogger<SqlIdentityStore>? _logger;
         private readonly AsyncCircuitBreakerPolicy _circuitBreaker;
         
         private bool _dbInitialized = false;
@@ -52,8 +52,8 @@ namespace ObjectIdentity
         /// <param name="telemetry">Optional telemetry provider for monitoring and performance tracking.</param>
         /// <param name="logger">Optional logger for diagnostic information.</param>
         public SqlIdentityStore(IOptions<ObjectIdentityOptions> options, 
-            IObjectIdentityTelemetry telemetry = null, 
-            ILogger<SqlIdentityStore> logger = null)
+            IObjectIdentityTelemetry? telemetry = null, 
+            ILogger<SqlIdentityStore>? logger = null)
         {
             var opts = options.Value ?? throw new ArgumentNullException(nameof(options));
             _connectionString = opts.ConnectionString ?? throw new ArgumentException("Connection string cannot be null", nameof(options));
@@ -212,7 +212,7 @@ namespace ObjectIdentity
         /// If the scope is already initialized, this method returns the existing ID block function.
         /// Otherwise, it creates a new sequence in the database with the appropriate starting value.
         /// </remarks>
-        public virtual Func<int, List<T>> Initialize<T>(string scope, long? startingId = null, long? maxValue = null)
+        public virtual Func<int, List<T>> Initialize<T>(string? scope, long? startingId = null, long? maxValue = null)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             using var operation = _telemetry?.StartOperation("Initialize", scope);
@@ -242,7 +242,7 @@ namespace ObjectIdentity
         /// If the scope is already initialized, this method returns the existing asynchronous ID block function.
         /// Otherwise, it creates a new sequence in the database with the appropriate starting value.
         /// </remarks>
-        public virtual async Task<Func<int, Task<List<T>>>> InitializeAsync<T>(string scope, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
+        public virtual async Task<Func<int, Task<List<T>>>> InitializeAsync<T>(string? scope, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             using var operation = _telemetry?.StartOperation("InitializeAsync", scope);
@@ -268,7 +268,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method is used internally to create the delegate function returned by <see cref="Initialize{T}"/>.
         /// </remarks>
-        protected Func<int, List<T>> IdBlockFunction<T>(string scope) 
+        protected Func<int, List<T>> IdBlockFunction<T>(string? scope) 
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             var sequenceName = GetSequenceName(scope);
@@ -291,7 +291,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method is used internally to create the asynchronous delegate function returned by <see cref="InitializeAsync{T}"/>.
         /// </remarks>
-        protected Func<int, Task<List<T>>> IdBlockFunctionAsync<T>(string scope) 
+        protected Func<int, Task<List<T>>> IdBlockFunctionAsync<T>(string? scope) 
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             var sequenceName = GetSequenceName(scope);
@@ -315,7 +315,7 @@ namespace ObjectIdentity
         /// This method first checks an in-memory cache of initialized scopes for performance.
         /// If the scope is not found in the cache, it queries the database to check if the corresponding sequence exists.
         /// </remarks>
-        public virtual bool IsInitialized(string scope)
+        public virtual bool IsInitialized(string? scope)
         {
             if (_initializedScopes.TryGetValue(scope, out var isInitialized) && isInitialized)
                 return true;
@@ -353,7 +353,7 @@ namespace ObjectIdentity
         /// This method first checks an in-memory cache of initialized scopes for performance.
         /// If the scope is not found in the cache, it queries the database to check if the corresponding sequence exists.
         /// </remarks>
-        public virtual async Task<bool> IsInitializedAsync(string scope, CancellationToken cancellationToken = default)
+        public virtual async Task<bool> IsInitializedAsync(string? scope, CancellationToken cancellationToken = default)
         {
             if (_initializedScopes.TryGetValue(scope, out var isInitialized) && isInitialized)
                 return true;
@@ -404,7 +404,7 @@ namespace ObjectIdentity
         /// </summary>
         /// <param name="scope">The scope name to get the sequence name for.</param>
         /// <returns>The fully-qualified sequence name (schema.sequence).</returns>
-        public virtual string GetSequenceName(string scope)
+        public virtual string GetSequenceName(string? scope)
         {
             var tableName = GetTableName(scope);
             return $"{_identitySchema}.{tableName}";
@@ -418,7 +418,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method delegates to <see cref="GetInitialStartValueForSequence"/> to determine the appropriate starting value.
         /// </remarks>
-        public virtual long GetInitialStartValueForScope(string scope) => GetInitialStartValueForSequence(scope);
+        public virtual long GetInitialStartValueForScope(string? scope) => GetInitialStartValueForSequence(scope);
 
         /// <summary>
         /// Gets the recommended starting ID for a new scope based on existing data asynchronously.
@@ -429,7 +429,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method delegates to <see cref="GetInitialStartValueForSequenceAsync"/> to determine the appropriate starting value.
         /// </remarks>
-        public virtual async Task<long> GetInitialStartValueForScopeAsync(string scope, CancellationToken cancellationToken = default)
+        public virtual async Task<long> GetInitialStartValueForScopeAsync(string? scope, CancellationToken cancellationToken = default)
             => await GetInitialStartValueForSequenceAsync(scope, cancellationToken);
 
         /// <summary>
@@ -441,7 +441,7 @@ namespace ObjectIdentity
         /// This method checks both application tables and the IdFactory table to determine the highest
         /// existing ID for this scope, and adds a safety buffer to ensure no collisions.
         /// </remarks>
-        public virtual long GetInitialStartValueForSequence(string scope)
+        public virtual long GetInitialStartValueForSequence(string? scope)
         {
             using var operation = _telemetry?.StartOperation("GetInitialStartValue", scope);
             
@@ -480,7 +480,7 @@ namespace ObjectIdentity
         /// This method checks both application tables and the IdFactory table to determine the highest
         /// existing ID for this scope, and adds a safety buffer to ensure no collisions.
         /// </remarks>
-        public virtual async Task<long> GetInitialStartValueForSequenceAsync(string scope, CancellationToken cancellationToken = default)
+        public virtual async Task<long> GetInitialStartValueForSequenceAsync(string? scope, CancellationToken cancellationToken = default)
         {
             using var operation = _telemetry?.StartOperation("GetInitialStartValueAsync", scope);
             
@@ -517,7 +517,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method is used by <see cref="GetInitialStartValueForSequence"/> to determine an appropriate starting value.
         /// </remarks>
-        protected virtual long? GetMaxValueFromIdFactory(string scope)
+        protected virtual long? GetMaxValueFromIdFactory(string? scope)
         {
             try
             {
@@ -554,7 +554,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method is used by <see cref="GetInitialStartValueForSequenceAsync"/> to determine an appropriate starting value.
         /// </remarks>
-        protected virtual async Task<long?> GetMaxValueFromIdFactoryAsync(string scope, CancellationToken cancellationToken = default)
+        protected virtual async Task<long?> GetMaxValueFromIdFactoryAsync(string? scope, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -592,7 +592,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method is used by <see cref="GetInitialStartValueForSequence"/> to determine an appropriate starting value.
         /// </remarks>
-        protected virtual long? GetMaxValueFromTableByScopeName(string scope)
+        protected virtual long? GetMaxValueFromTableByScopeName(string? scope)
         {
             try
             {
@@ -629,7 +629,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method is used by <see cref="GetInitialStartValueForSequenceAsync"/> to determine an appropriate starting value.
         /// </remarks>
-        protected virtual async Task<long?> GetMaxValueFromTableByScopeNameAsync(string scope, CancellationToken cancellationToken = default)
+        protected virtual async Task<long?> GetMaxValueFromTableByScopeNameAsync(string? scope, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -669,7 +669,7 @@ namespace ObjectIdentity
         /// This method is called during initialization of a scope to ensure the necessary SQL sequence exists.
         /// The sequence is created with a cache size of 100 for performance.
         /// </remarks>
-        public virtual void CreateSequenceIfMissingFor(string scope, long startValue, long? maxValue)
+        public virtual void CreateSequenceIfMissingFor(string? scope, long startValue, long? maxValue)
         {
             var tableName = GetTableName(scope);
             string sql = maxValue.HasValue
@@ -692,7 +692,7 @@ namespace ObjectIdentity
         /// This method is called during asynchronous initialization of a scope to ensure the necessary SQL sequence exists.
         /// The sequence is created with a cache size of 100 for performance.
         /// </remarks>
-        public virtual async Task CreateSequenceIfMissingForAsync(string scope, long startValue, long? maxValue, CancellationToken cancellationToken = default)
+        public virtual async Task CreateSequenceIfMissingForAsync(string? scope, long startValue, long? maxValue, CancellationToken cancellationToken = default)
         {
             var tableName = GetTableName(scope);
             string sql = maxValue.HasValue
@@ -715,7 +715,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method ensures the scope is initialized before retrieving the ID block.
         /// </remarks>
-        public List<T> GetNextIdBlock<T>(string scope, int blockSize, long? startingId = null, long? maxValue = null)
+        public List<T> GetNextIdBlock<T>(string? scope, int blockSize, long? startingId = null, long? maxValue = null)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             using var operation = _telemetry?.StartOperation("GetNextIdBlock", scope);
@@ -739,7 +739,7 @@ namespace ObjectIdentity
         /// <remarks>
         /// This method ensures the scope is initialized before retrieving the ID block.
         /// </remarks>
-        public async Task<List<T>> GetNextIdBlockAsync<T>(string scope, int blockSize, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
+        public async Task<List<T>> GetNextIdBlockAsync<T>(string? scope, int blockSize, long? startingId = null, long? maxValue = null, CancellationToken cancellationToken = default)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
             using var operation = _telemetry?.StartOperation("GetNextIdBlockAsync", scope);

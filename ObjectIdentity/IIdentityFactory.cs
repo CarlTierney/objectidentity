@@ -28,7 +28,7 @@ namespace ObjectIdentity
         /// The factory will interact with the underlying identity store to ensure the scope
         /// is properly initialized before returning a scope that can generate IDs.
         /// </remarks>
-        IIdentityScope<T> CreateIdentityScope<T>(string scope, long? startingId = null, long? maxValue = null, int? blockSize = 100)
+        IIdentityScope<T> CreateIdentityScope<T>(string? scope, long? startingId = null, long? maxValue = null, int? blockSize = 100)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
             
         /// <summary>
@@ -45,7 +45,7 @@ namespace ObjectIdentity
         /// This is the asynchronous version of <see cref="CreateIdentityScope{T}"/> and is recommended
         /// for use in asynchronous applications.
         /// </remarks>
-        Task<IIdentityScope<T>> CreateIdentityScopeAsync<T>(string scope, long? startingId = null, long? maxValue = null, int? blockSize = 100, CancellationToken cancellationToken = default)
+        Task<IIdentityScope<T>> CreateIdentityScopeAsync<T>(string? scope, long? startingId = null, long? maxValue = null, int? blockSize = 100, CancellationToken cancellationToken = default)
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>;
     }
 }

@@ -29,12 +29,12 @@ namespace ObjectIdentity
         private readonly Type _idType;
         private int _currentBlockSize;
         private readonly ConcurrentQueue<T> _availableIds;
-        private readonly string _scope;
+        private readonly string? _scope;
         private readonly Func<int, List<T>> _blockFunction;
         private Func<int, Task<List<T>>> _asyncBlockFunction;
         private int _fetchingInProgress;
         private bool _gettingNextBlock;
-        private Task _activeBlockFunction;
+        private Task? _activeBlockFunction;
         private readonly object _nextBlockLock = new object();
         private readonly double _prefetchThreshold = 0.2; // Fetch new block when queue is at 20% capacity
         
@@ -44,7 +44,7 @@ namespace ObjectIdentity
         private readonly TimeSpan _blockSizeAdjustmentInterval = TimeSpan.FromMinutes(5);
         private DateTime _lastBlockSizeAdjustment = DateTime.UtcNow;
         private int _idsFetchedSinceLastAdjustment = 0;
-        private readonly IObjectIdentityTelemetry _telemetry;
+        private readonly IObjectIdentityTelemetry? _telemetry;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IdentityScope{T}"/> class with a synchronous block function.
@@ -60,9 +60,9 @@ namespace ObjectIdentity
         /// </remarks>
         public IdentityScope(
             int blockSize,
-            string scope,
+            string? scope,
             Func<int, List<T>> blockFunction,
-            IObjectIdentityTelemetry telemetry = null
+            IObjectIdentityTelemetry? telemetry = null
             )
         {
             _idType = typeof(T);
@@ -97,9 +97,9 @@ namespace ObjectIdentity
         /// </remarks>
         public IdentityScope(
             int blockSize,
-            string scope,
+            string? scope,
             Func<int, Task<List<T>>> asyncBlockFunction,
-            IObjectIdentityTelemetry telemetry = null
+            IObjectIdentityTelemetry? telemetry = null
             )
         {
             _idType = typeof(T);
@@ -128,7 +128,7 @@ namespace ObjectIdentity
         /// <summary>
         /// Gets the name of this identity scope, typically corresponding to an entity type or table.
         /// </summary>
-        public string Scope => _scope;
+        public string? Scope => _scope;
         
         /// <summary>
         /// Gets the current block size being used for this scope.
