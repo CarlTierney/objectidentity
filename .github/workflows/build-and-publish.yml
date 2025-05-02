@@ -7,23 +7,25 @@ on:
     branches: [ main ]
   workflow_dispatch: # Allow manual trigger
 
+# Define the SQL password at the top of the file - used in multiple places
+env:
+  SQL_PASSWORD: "StrongP@ssw0rd456!"
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    env:
-      SQL_PASSWORD: ${{ secrets.SQL_SA_PASSWORD }} # Password used only for test containers in CI
     
     services:
       sql:
         image: mcr.microsoft.com/mssql/server:2019-latest
         env:
-          SA_PASSWORD: ${{ secrets.SQL_SA_PASSWORD }}
+          SA_PASSWORD: ${{ env.SQL_PASSWORD }}
           ACCEPT_EULA: Y
         ports:
           - 1433:1433
         # Health check ensures SQL Server is ready before tests run
         options: >-
-          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '${{ env.SQL_PASSWORD }}' -Q 'SELECT 1' || exit 1"
+          --health-cmd="bash -c '/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"${{ env.SQL_PASSWORD }}\" -Q \"SELECT 1\" || exit 1'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
