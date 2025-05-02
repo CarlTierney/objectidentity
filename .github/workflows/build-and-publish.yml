@@ -9,20 +9,19 @@ on:
 
 # Define the SQL password at the top of the file - used in multiple places
 env:
-  # SECURITY: Using hardcoded credentials for ephemeral test container only.
-  # This container is isolated and destroyed after tests complete.
-  # NOT a security risk as it's never exposed beyond the CI environment.
-  # nosec or #pragma: allowlist secret
-  SA_PASSWORD: "SecretsAreHandicapped@2025"
-  ACCEPT_EULA: Y
+
   
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    
+    env:
+      
     services:
       sql:
         image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: "SecretsAreHandicapped@2025"
         ports:
           - 1433:1433
         # Health check ensures SQL Server is ready before tests run
