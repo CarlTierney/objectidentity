@@ -259,6 +259,15 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Creates a function that retrieves a block of IDs from a SQL sequence.
+        /// </summary>
+        /// <typeparam name="T">The type of IDs to generate (e.g., int, long).</typeparam>
+        /// <param name="scope">The name of the scope to get IDs for.</param>
+        /// <returns>A function that takes a block size and returns a list of sequential IDs.</returns>
+        /// <remarks>
+        /// This method is used internally to create the delegate function returned by <see cref="Initialize{T}"/>.
+        /// </remarks>
         protected Func<int, List<T>> IdBlockFunction<T>(string scope) 
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
@@ -273,6 +282,15 @@ namespace ObjectIdentity
             };
         }
 
+        /// <summary>
+        /// Creates a function that asynchronously retrieves a block of IDs from a SQL sequence.
+        /// </summary>
+        /// <typeparam name="T">The type of IDs to generate (e.g., int, long).</typeparam>
+        /// <param name="scope">The name of the scope to get IDs for.</param>
+        /// <returns>A function that takes a block size and returns a task yielding a list of sequential IDs.</returns>
+        /// <remarks>
+        /// This method is used internally to create the asynchronous delegate function returned by <see cref="InitializeAsync{T}"/>.
+        /// </remarks>
         protected Func<int, Task<List<T>>> IdBlockFunctionAsync<T>(string scope) 
             where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
         {
@@ -414,6 +432,15 @@ namespace ObjectIdentity
         public virtual async Task<long> GetInitialStartValueForScopeAsync(string scope, CancellationToken cancellationToken = default)
             => await GetInitialStartValueForSequenceAsync(scope, cancellationToken);
 
+        /// <summary>
+        /// Determines the initial starting value for a sequence based on existing data in the database.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <returns>The initial starting value for the sequence, with a safety buffer added.</returns>
+        /// <remarks>
+        /// This method checks both application tables and the IdFactory table to determine the highest
+        /// existing ID for this scope, and adds a safety buffer to ensure no collisions.
+        /// </remarks>
         public virtual long GetInitialStartValueForSequence(string scope)
         {
             using var operation = _telemetry?.StartOperation("GetInitialStartValue", scope);
@@ -443,6 +470,16 @@ namespace ObjectIdentity
             return startValue;
         }
 
+        /// <summary>
+        /// Asynchronously determines the initial starting value for a sequence based on existing data in the database.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains the initial starting value for the sequence, with a safety buffer added.</returns>
+        /// <remarks>
+        /// This method checks both application tables and the IdFactory table to determine the highest
+        /// existing ID for this scope, and adds a safety buffer to ensure no collisions.
+        /// </remarks>
         public virtual async Task<long> GetInitialStartValueForSequenceAsync(string scope, CancellationToken cancellationToken = default)
         {
             using var operation = _telemetry?.StartOperation("GetInitialStartValueAsync", scope);
@@ -472,6 +509,14 @@ namespace ObjectIdentity
             return startValue;
         }
 
+        /// <summary>
+        /// Retrieves the maximum ID value from the IdFactory table for a specific scope.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <returns>The maximum ID value found in the IdFactory table, or null if no value is found or the table doesn't exist.</returns>
+        /// <remarks>
+        /// This method is used by <see cref="GetInitialStartValueForSequence"/> to determine an appropriate starting value.
+        /// </remarks>
         protected virtual long? GetMaxValueFromIdFactory(string scope)
         {
             try
@@ -500,6 +545,15 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Asynchronously retrieves the maximum ID value from the IdFactory table for a specific scope.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains the maximum ID value found in the IdFactory table, or null if no value is found or the table doesn't exist.</returns>
+        /// <remarks>
+        /// This method is used by <see cref="GetInitialStartValueForSequenceAsync"/> to determine an appropriate starting value.
+        /// </remarks>
         protected virtual async Task<long?> GetMaxValueFromIdFactoryAsync(string scope, CancellationToken cancellationToken = default)
         {
             try
@@ -530,6 +584,14 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Retrieves the maximum ID value from the application table associated with a specific scope.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <returns>The maximum ID value found in the application table, or null if no value is found or the table doesn't exist.</returns>
+        /// <remarks>
+        /// This method is used by <see cref="GetInitialStartValueForSequence"/> to determine an appropriate starting value.
+        /// </remarks>
         protected virtual long? GetMaxValueFromTableByScopeName(string scope)
         {
             try
@@ -558,6 +620,15 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Asynchronously retrieves the maximum ID value from the application table associated with a specific scope.
+        /// </summary>
+        /// <param name="scope">The name of the scope to check.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains the maximum ID value found in the application table, or null if no value is found or the table doesn't exist.</returns>
+        /// <remarks>
+        /// This method is used by <see cref="GetInitialStartValueForSequenceAsync"/> to determine an appropriate starting value.
+        /// </remarks>
         protected virtual async Task<long?> GetMaxValueFromTableByScopeNameAsync(string scope, CancellationToken cancellationToken = default)
         {
             try
@@ -588,6 +659,16 @@ namespace ObjectIdentity
             }
         }
 
+        /// <summary>
+        /// Creates a SQL sequence for a scope if it doesn't already exist.
+        /// </summary>
+        /// <param name="scope">The name of the scope to create a sequence for.</param>
+        /// <param name="startValue">The starting value for the sequence.</param>
+        /// <param name="maxValue">Optional maximum value for the sequence. If specified, the sequence will cycle back to the start after reaching this value.</param>
+        /// <remarks>
+        /// This method is called during initialization of a scope to ensure the necessary SQL sequence exists.
+        /// The sequence is created with a cache size of 100 for performance.
+        /// </remarks>
         public virtual void CreateSequenceIfMissingFor(string scope, long startValue, long? maxValue)
         {
             var tableName = GetTableName(scope);
@@ -599,6 +680,18 @@ namespace ObjectIdentity
             _initializedScopes[scope] = true;
         }
 
+        /// <summary>
+        /// Asynchronously creates a SQL sequence for a scope if it doesn't already exist.
+        /// </summary>
+        /// <param name="scope">The name of the scope to create a sequence for.</param>
+        /// <param name="startValue">The starting value for the sequence.</param>
+        /// <param name="maxValue">Optional maximum value for the sequence. If specified, the sequence will cycle back to the start after reaching this value.</param>
+        /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        /// <remarks>
+        /// This method is called during asynchronous initialization of a scope to ensure the necessary SQL sequence exists.
+        /// The sequence is created with a cache size of 100 for performance.
+        /// </remarks>
         public virtual async Task CreateSequenceIfMissingForAsync(string scope, long startValue, long? maxValue, CancellationToken cancellationToken = default)
         {
             var tableName = GetTableName(scope);
