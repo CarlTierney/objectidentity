@@ -1,6 +1,6 @@
 # ObjectIdentity
 
-[![Build and Publish](https://github.com/YourUsername/ObjectIdentity/actions/workflows/build-and-publish.yml/badge.svg)](https://github.com/YourUsername/ObjectIdentity/actions/workflows/build-and-publish.yml)
+[![Build and Publish Nuget Package](https://github.com/YourUsername/ObjectIdentity/actions/workflows/build-and-publish.yml/badge.svg)](https://github.com/YourUsername/ObjectIdentity/actions/workflows/build-and-publish.yml)
 [![NuGet Version](https://img.shields.io/nuget/v/ObjectIdentity.svg)](https://www.nuget.org/packages/ObjectIdentity/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ObjectIdentity.svg)](https://www.nuget.org/packages/ObjectIdentity/)
 
