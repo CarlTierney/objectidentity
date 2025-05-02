@@ -24,10 +24,22 @@ namespace ObjectIdentity.Tests
         /// </summary>
         public static string GetTestDbConnectionString()
         {
-            var connString = _configuration.Value.GetConnectionString("testdb");
+            // First check if we have the connection string from environment variables (CI environment)
+            var envConnString = Environment.GetEnvironmentVariable("ConnectionStrings__testdb");
+            if (!string.IsNullOrEmpty(envConnString))
+            {
+                return envConnString;
+            }
             
-           
-            return connString;
+            // Next try to get it from config (local environment)
+            var connString = _configuration.Value.GetConnectionString("testdb");
+            if (!string.IsNullOrEmpty(connString))
+            {
+                return connString;
+            }
+            
+            // Default fallback for local development
+            return "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true;Database=SequentialIdTests;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
         }
 
         /// <summary>

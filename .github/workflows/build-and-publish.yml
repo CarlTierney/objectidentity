@@ -9,7 +9,23 @@ on:
 
 jobs:
   build-and-publish:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          SA_PASSWORD: ${{ secrets.SQL_SA_PASSWORD }}
+          ACCEPT_EULA: Y
+        ports:
+          - 1433:1433
+        # Health check ensures SQL Server is ready before tests run
+        options: >-
+          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${{ secrets.SQL_SA_PASSWORD }} -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
     
     steps:
     - uses: actions/checkout@v3
@@ -23,18 +39,16 @@ jobs:
           6.0.x
           8.0.x
     
-    - name: Install SQL Server LocalDB
-      shell: powershell
+    - name: Create Test Database
       run: |
-        # Install LocalDB using winget
-        winget install Microsoft.SqlServer.2019.LocalDB
-
-        # Create test database 
-        sqllocaldb create MSSQLLocalDB -s
-        sqlcmd -S "(localdb)\MSSQLLocalDB" -Q "CREATE DATABASE SequentialIdTests"
+        # Install SQL Server client tools
+        curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+        curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list
+        sudo apt-get update
+        sudo apt-get install -y mssql-tools unixodbc-dev
         
-        # Verify LocalDB is running
-        sqllocaldb info MSSQLLocalDB
+        # Create the test database
+        /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${{ secrets.SQL_SA_PASSWORD }} -Q "CREATE DATABASE SequentialIdTests"
     
     - name: Restore dependencies
       run: dotnet restore
@@ -44,6 +58,8 @@ jobs:
     
     - name: Test
       run: dotnet test --configuration Release --no-build --verbosity normal
+      env:
+        ConnectionStrings__testdb: "Server=localhost;Database=SequentialIdTests;User Id=sa;Password=${{ secrets.SQL_SA_PASSWORD }};TrustServerCertificate=True;"
     
     - name: Pack
       run: dotnet pack ObjectIdentity/ObjectIdentity.csproj --configuration Release --no-build --output ./nupkgs
