@@ -22,6 +22,7 @@ jobs:
         env:
           ACCEPT_EULA: Y
           SA_PASSWORD: "${{ env.SQL_PASSWORD }}"
+          MSSQL_DATA_DIR: /var/opt/mssql/data
         ports:
           - 1433:1433
         options: >-
@@ -30,7 +31,6 @@ jobs:
           --health-timeout 10s
           --health-retries 10
           --health-start-period 120s
-
       
     
     steps:
