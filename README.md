@@ -1,5 +1,9 @@
 # ObjectIdentity
 
+[![Build and Publish](https://github.com/YourUsername/ObjectIdentity/actions/workflows/build-and-publish.yml/badge.svg)](https://github.com/YourUsername/ObjectIdentity/actions/workflows/build-and-publish.yml)
+[![NuGet Version](https://img.shields.io/nuget/v/ObjectIdentity.svg)](https://www.nuget.org/packages/ObjectIdentity/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ObjectIdentity.svg)](https://www.nuget.org/packages/ObjectIdentity/)
+
 A library for generating unique IDs for objects prior to their being saved to the database with SQL Server backend support via sequences.
 
 ## Features
@@ -101,3 +105,7 @@ Task.WaitAll(tasks.ToArray());
                         
 // All generated IDs are guaranteed to be unique across threads
 </code></pre>
+
+## Testing
+
+This library is fully tested using SQL Server LocalDB for both local and CI/CD environments. The GitHub Actions workflow automatically sets up LocalDB, creates a test database, and runs the full test suite to ensure compatibility.
