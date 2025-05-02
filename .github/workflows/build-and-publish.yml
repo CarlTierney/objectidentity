@@ -37,30 +37,25 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0 # Ensures all history and tags are fetched for versioning
+        
+    - name: Install SQL Server tools
+      run: |
+        # Install SQL Server client tools
+        curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+        curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list
+        sudo apt-get update
+        sudo apt-get install -y mssql-tools unixodbc-dev
+        echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> $HOME/.bashrc
+        source $HOME/.bashrc
 
-    - name: Wait for SQL Server to be ready
+    - name: Create Test Database
       run: |
-        for i in {1..10}; do
-        if [ "$(docker inspect -f {{.State.Health.Status}} sql)" == "healthy" ]; then
-         echo "SQL Server is ready."
-         break
-        fi
-        echo "Waiting for SQL Server to be ready..."
-        sleep 10
-        done
-        if [ "$(docker inspect -f {{.State.Health.Status}} sql)" != "healthy" ]; then
-        echo "SQL Server failed to initialize."
-        exit 1
-        fi
-        
-    - name: Set up SQL Test DB
-      run: |
-         # Wait for SQL Server to initialize
-          sleep 60
-          # Create the test database
-          docker exec -it sql /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "SecretsAreHandicapped@2025!" \
-            -Q "CREATE DATABASE SequentialIdTests"
-        
+        # Create the test database - connect to SQL Server service container
+        # In GitHub Actions, services are accessible via localhost and the mapped port
+        sqlcmd -S localhost,1433 -U sa -P "${{ env.SQL_PASSWORD }}" -Q "CREATE DATABASE SequentialIdTests"
+    
+    
+    
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
