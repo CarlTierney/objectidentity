@@ -52,7 +52,7 @@ jobs:
       run: |
         # Create the test database - connect to SQL Server service container
         # In GitHub Actions, services are accessible via localhost and the mapped port
-        /opt/mssql-tools/bin/sqlcmd -S sql -U sa -P "${{ env.SQL_PASSWORD }}" -Q "CREATE DATABASE SequentialIdTests"
+        /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${{ env.SQL_PASSWORD }}" -Q "CREATE DATABASE SequentialIdTests"
     
     
     
@@ -74,7 +74,7 @@ jobs:
     - name: Test
       run: dotnet test --configuration Release --no-build --verbosity normal
       env:
-        ConnectionStrings__testdb: "Server=sql;Database=SequentialIdTests;User Id=sa;Password=${{ env.SQL_PASSWORD }};TrustServerCertificate=True;"
+        ConnectionStrings__testdb: "Server=localhost;Database=SequentialIdTests;User Id=sa;Password=${{ env.SQL_PASSWORD }};TrustServerCertificate=True;"
     
     - name: Pack
       run: dotnet pack ObjectIdentity/ObjectIdentity.csproj --configuration Release --no-build --output ./nupkgs
