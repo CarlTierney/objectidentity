@@ -63,16 +63,7 @@ jobs:
           6.0.x
           8.0.x
     
-    - name: Create Test Database
-      run: |
-        # Install SQL Server client tools
-        curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-        curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list
-        sudo apt-get update
-        sudo apt-get install -y mssql-tools unixodbc-dev
-        
-        # Create the test database
-        /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${{ env.SQL_PASSWORD }}" -Q "CREATE DATABASE SequentialIdTests"
+   
     
     - name: Restore dependencies
       run: dotnet restore
