@@ -1,5 +1,6 @@
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using ObjectIdentity.Tests;
 
 /// <summary>
     /// Additional tests for the generic identity functionality
@@ -12,13 +13,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
         [ClassInitialize]
         public static void Setup(TestContext context)
         {
-            var cb = new ConfigurationBuilder();
-            cb.AddUserSecrets<GenericIdentityTests>()
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables();
-            var config = cb.Build();
+            _dbConnString = TestConfig.Configuration.GetConnectionString("testdb");
 
-            _dbConnString = config["testdb"] ?? config.GetConnectionString("testdb");
+            
         }
 
         [TestMethod]
