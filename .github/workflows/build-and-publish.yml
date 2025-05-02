@@ -18,19 +18,28 @@ jobs:
     
     services:
       sql:
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:2019-CU16-ubuntu-20.04
         env:
           ACCEPT_EULA: Y
           SA_PASSWORD: "${{ env.SQL_PASSWORD }}"
         ports:
           - 1433:1433
-        # Health check ensures SQL Server is ready before tests run
         options: >-
-          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"SecretsAreHandicapped@2025!\" -Q \"SELECT 1\" || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 45s
+          --health-cmd="(/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"SecretsAreHandicapped@2025!\" -Q \"SELECT 1\" && exit 0) || exit 1"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 10
+          --health-start-period 90s
+
+          - name: Create Test Database
+            run: |
+              # Wait for SQL Server to be ready
+              for i in {1..10}; do
+                /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"SecretsAreHandicapped@2025!\" -Q "SELECT 1" && break || sleep 15
+              done
+              
+              # Create the test database
+              /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"SecretsAreHandicapped@2025!\" -Q "CREATE DATABASE SequentialIdTests"
     
     steps:
     - uses: actions/checkout@v3
