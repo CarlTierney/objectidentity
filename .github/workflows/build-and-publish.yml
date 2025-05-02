@@ -9,24 +9,24 @@ on:
 
 # Define the SQL password at the top of the file - used in multiple places
 env:
+  SQL_PASSWORD: "SecretsAreHandicapped@2025!"
 
   
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    env:
-      
+    
     services:
       sql:
         image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           ACCEPT_EULA: Y
-          SA_PASSWORD: "SecretsAreHandicapped@2025"
+          SA_PASSWORD: "${{ env.SQL_PASSWORD }}"
         ports:
           - 1433:1433
         # Health check ensures SQL Server is ready before tests run
         options: >-
-          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"SecretsAreHandicapped@2025!\" -Q \"SELECT 1\" || exit 1"
+          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"${{ env.SQL_PASSWORD }}\" -Q \"SELECT 1\" || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
