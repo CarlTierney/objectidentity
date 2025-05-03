@@ -8,7 +8,7 @@ A library for generating unique sequential IDs for objects across many servers a
 
 ## Features
 
-- Thread-safe unique ID generation
+- Multi server, Thread-safe unique ID generation
 - SQL Server backend
 - Designed to support multiple instances of identity services without creating duplicate ids regardless of scale out
 - Extensible to support alternative stores for mechanisms via the IIdentityStore interface
