@@ -11,8 +11,8 @@
     <Description>A library for generating unique sequential IDs for objects across multiple servers and multiple threads with SQL Server backend support</Description>
     <PackageTags>identity;id-generation;sql-server</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/yourusername/ObjectIdentity</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/yourusername/ObjectIdentity.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/CarlTierney/ObjectIdentity</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/CarlTierney/ObjectIdentity.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
