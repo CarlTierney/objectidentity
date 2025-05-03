@@ -5,10 +5,10 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <PackageId>ObjectIdentity</PackageId>
-    <Version>1.0.1</Version>
-    <Authors>Your Name</Authors>
-    <Company>Your Company</Company>
-    <Description>A library for generating unique IDs for objects with SQL Server backend support</Description>
+    <Version>1.0.3</Version>
+    <Authors>Carl Tierney</Authors>
+
+    <Description>A library for generating unique sequential IDs for objects across multiple servers and multiple threads with SQL Server backend support</Description>
     <PackageTags>identity;id-generation;sql-server</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/yourusername/ObjectIdentity</PackageProjectUrl>
