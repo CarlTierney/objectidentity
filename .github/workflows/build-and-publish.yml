@@ -11,7 +11,6 @@ on:
 env:
   SQL_PASSWORD: "SecretsAreHandicapped@2025!"
 
-  
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -32,7 +31,6 @@ jobs:
           --health-retries 10
           --health-start-period 120s
       
-    
     steps:
     - uses: actions/checkout@v3
       with:
@@ -54,16 +52,12 @@ jobs:
         # In GitHub Actions, services are accessible via localhost and the mapped port
         /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${{ env.SQL_PASSWORD }}" -Q "CREATE DATABASE SequentialIdTests"
     
-    
-    
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: |
           6.0.x
           8.0.x
-    
-   
     
     - name: Restore dependencies
       run: dotnet restore
@@ -77,9 +71,9 @@ jobs:
         ConnectionStrings__testdb: "Server=localhost;Database=SequentialIdTests;User Id=sa;Password=${{ env.SQL_PASSWORD }};TrustServerCertificate=True;"
     
     - name: Pack
-      run: dotnet pack ObjectIdentity/ObjectIdentity.csproj --configuration Release --no-build --output ./nupkgs
+      run: dotnet pack ObjectIdentity/ObjectIdentity.csproj --configuration Release --no-build --output ./nupkgs --include-symbols -p:SymbolPackageFormat=snupkg
     
     - name: Push to NuGet.org
       # Only run this step when pushing to main branch (not for PRs)
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGETAPIKEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

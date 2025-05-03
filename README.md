@@ -24,7 +24,7 @@ A library for generating unique sequential IDs for objects across many servers a
 
 ObjectIdentity now supports Microsoft.Extensions.DependencyInjection for easy integration:
 
-<pre><code class='language-cs'>
+```csharp
 using Microsoft.Extensions.DependencyInjection;
 using ObjectIdentity;
 
@@ -41,13 +41,13 @@ var manager = provider.GetRequiredService<IdentityManager>();
 
 // Get the next available ID for an object such as LedgerTransaction
 long id = manager.GetNextIdentity<LedgerTransaction, long>();
-</code></pre>
+```
 
 ### Basic Setup (Manual Construction)
 
 You can still manually construct the components if you need more control:
 
-<pre><code class='language-cs'>
+```csharp
 using Microsoft.Extensions.Options;
 using ObjectIdentity;
 
@@ -58,34 +58,34 @@ var options = Options.Create(new ObjectIdentityOptions {
 var store = new SqlIdentityStore(options);
 var factory = new IdentityFactory(store, options);
 var manager = new IdentityManager(factory);
-</code></pre>
+```
 
 ### Getting IDs
 
 Once configured, you can request IDs for your domain objects:
 
-<pre><code class='language-cs'>
+```csharp
 // Get the next available ID for an object such as LedgerTransaction
 long id = manager.GetNextIdentity<LedgerTransaction, long>();
-</code></pre>
+```
 
 ### Custom Starting Values
 
 You can initialize scopes with specific starting values:
 
-<pre><code class='language-cs'>
+```csharp
 // Initialize a scope with a specific starting ID
 manager.IntializeScope<long>("CustomScope", 1000); 
 // Or use a type to define the scope 
 manager.InitializeScope<MyEntityType, long>(1000);
 // Get IDs from the initialized scope
 long id = manager.GetNextIdentity<MyEntityType, long>();
-</code></pre>
+```
 
 ### Concurrent Usage
 The library is designed for thread-safe operation in multi-threaded environments:
 
-<pre><code class='language-cs'>
+```csharp
 // Create tasks that generate IDs concurrently
 var tasks = new List<Task<List<long>>>(); 
 for (var i = 0; i < 10; i++) 
@@ -105,7 +105,7 @@ for (var i = 0; i < 10; i++)
 Task.WaitAll(tasks.ToArray());
                         
 // All generated IDs are guaranteed to be unique across threads
-</code></pre>
+```
 
 ## Testing
 
