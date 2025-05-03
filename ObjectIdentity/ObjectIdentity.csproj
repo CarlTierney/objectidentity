@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <PackageId>ObjectIdentity</PackageId>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Authors>Carl Tierney</Authors>
 
     <Description>A library for generating unique sequential IDs for objects across multiple servers and multiple threads with SQL Server backend support</Description>
