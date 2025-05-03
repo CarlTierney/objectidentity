@@ -17,7 +17,7 @@ namespace ObjectIdentity
     /// supporting both synchronous and asynchronous operations, and different numeric types 
     /// such as int and long.
     /// </remarks>
-    public static class SqlIdentityListHelper
+    internal static class SqlIdentityListHelper
     {
         /// <summary>
         /// Gets a block of IDs from a SQL sequence with generic type support.

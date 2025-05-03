@@ -23,6 +23,8 @@
     <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
     <!-- Important for .NET Standard 2.0 compatibility -->
     <NoWarn>$(NoWarn);CS8604;CS8602;CS8618</NoWarn>
+    <!-- Make internals visible to test project -->
+    <InternalsVisibleTo>ObjectIdentity.Tests</InternalsVisibleTo>
   </PropertyGroup>
 
   <!-- Target-specific configurations -->
@@ -44,8 +46,8 @@
 
 
   <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="" />
-    <None Include="..\icon.png" Pack="true" PackagePath="" Condition="Exists('..\icon.png')" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\icon.png')" />
   </ItemGroup>
 
   <!-- Common package references for all frameworks -->

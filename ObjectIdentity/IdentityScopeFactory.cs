@@ -15,7 +15,7 @@ namespace ObjectIdentity
     /// The identity factory is responsible for creating and initializing identity scopes,
     /// which manage the generation of unique, sequential IDs for specific domains.
     /// </remarks>
-    public class IdentityFactory : IIdentityFactory
+    internal class IdentityFactory : IIdentityFactory
     {
         private readonly IIdentityStore _identityStore;
         private readonly int _defaultBlockSize;

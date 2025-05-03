@@ -27,7 +27,7 @@ namespace ObjectIdentity
     /// <item><description>Telemetry for monitoring and diagnostics</description></item>
     /// </list>
     /// </remarks>
-    public class SqlIdentityStore : IIdentityStore
+    internal class SqlIdentityStore : IIdentityStore
     {
         private readonly string _connectionString;
         private readonly string _tableSchema;
