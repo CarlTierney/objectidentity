@@ -4,12 +4,13 @@
 [![NuGet Version](https://img.shields.io/nuget/v/ObjectIdentity.svg)](https://www.nuget.org/packages/ObjectIdentity/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ObjectIdentity.svg)](https://www.nuget.org/packages/ObjectIdentity/)
 
-A library for generating unique IDs for objects prior to their being saved to the database with SQL Server backend support via sequences.
+A library for generating unique sequential IDs for objects across many servers and services prior to their being saved to the database.  An implementation exists using  a  SQL Server backend support via sequences, but the library is intended to be extensible to other potential back end soutions for identity.   
 
 ## Features
 
 - Thread-safe unique ID generation
 - SQL Server backend
+- Designed to support multiple instances of identity services without creating duplicate ids regardless of scale out
 - Extensible to support alternative stores for mechanisms via the IIdentityStore interface
 - Configurable ID ranges
 - Efficient batch allocation, allocation of block sizes can be handled via the scope initializer
