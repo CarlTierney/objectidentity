@@ -754,8 +754,8 @@ namespace ObjectIdentity
     /// Provides an asynchronous locking mechanism for use in asynchronous methods.
     /// </summary>
     /// <remarks>
-    /// This class combines a <see cref="SemaphoreSlim"/> for asynchronous waiting with a 
-    /// standard lock for complete thread safety.
+    /// This class uses a <see cref="SemaphoreSlim"/> for asynchronous waiting to ensure
+    /// thread-safe operations in async contexts without cross-thread Monitor issues.
     /// </remarks>
     internal class AsyncLock
     {
@@ -800,7 +800,7 @@ namespace ObjectIdentity
             {
                 _semaphore = semaphore;
                 _syncLock = syncLock;
-                Monitor.Enter(_syncLock);
+                // Removed Monitor.Enter to avoid cross-thread issues in async contexts
             }
             
             /// <summary>
@@ -808,7 +808,7 @@ namespace ObjectIdentity
             /// </summary>
             public void Dispose()
             {
-                Monitor.Exit(_syncLock);
+                // Removed Monitor.Exit to avoid cross-thread issues in async contexts
                 _semaphore.Release();
             }
         }

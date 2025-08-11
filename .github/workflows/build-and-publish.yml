@@ -46,11 +46,22 @@ jobs:
         echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> $HOME/.bashrc
         source $HOME/.bashrc
 
+    - name: Wait for SQL Server to be ready
+      run: |
+        # Wait a bit longer to ensure SQL Server is fully ready
+        sleep 10
+        
     - name: Create Test Database
       run: |
         # Create the test database - connect to SQL Server service container
         # In GitHub Actions, services are accessible via localhost and the mapped port
         /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${{ env.SQL_PASSWORD }}" -Q "CREATE DATABASE SequentialIdTests"
+        
+    - name: Verify Database Connection
+      run: |
+        # Verify the database was created and is accessible
+        /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${{ env.SQL_PASSWORD }}" -Q "SELECT DB_ID('SequentialIdTests') as DatabaseId"
+        /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "${{ env.SQL_PASSWORD }}" -d SequentialIdTests -Q "SELECT 1 as ConnectionTest"
     
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
