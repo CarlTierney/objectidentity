@@ -37,7 +37,12 @@ services.AddObjectIdentity(options =>
 });
 
 var provider = services.BuildServiceProvider();
-var manager = provider.GetRequiredService<IdentityManager>();
+
+// You can resolve via the interface for easier mocking
+var manager = provider.GetRequiredService<IIdentityManager>();
+
+// Or via the concrete type if needed
+var concreteManager = provider.GetRequiredService<IdentityManager>();
 
 // Get the next available ID for an object such as LedgerTransaction
 long id = manager.GetNextIdentity<LedgerTransaction, long>();
@@ -105,6 +110,72 @@ for (var i = 0; i < 10; i++)
 Task.WaitAll(tasks.ToArray());
                         
 // All generated IDs are guaranteed to be unique across threads
+```
+
+## Mocking and Testing
+
+### Unit Testing with Mocks
+
+The library now provides an `IIdentityManager` interface that makes it easy to mock identity generation in your unit tests:
+
+```csharp
+// Example using a mock identity manager for unit testing
+public class MockIdentityManager : IIdentityManager
+{
+    private long _currentId = 0;
+    
+    public T GetNextIdentity<T>(string? objectName) where T : struct, IComparable, IConvertible, IFormattable, IComparable<T>, IEquatable<T>
+    {
+        return (T)Convert.ChangeType(++_currentId, typeof(T));
+    }
+    
+    // Implement other interface methods as needed...
+}
+
+// In your test
+var mockManager = new MockIdentityManager();
+var service = new YourService(mockManager);
+// Test your service logic without database dependency
+```
+
+### Multiple Configurations
+
+You can register multiple identity managers with different configurations in the same project:
+
+```csharp
+// Define custom interfaces for different databases/schemas
+public interface IPrimaryDbIdentityManager : IIdentityManager { }
+public interface ISecondaryDbIdentityManager : IIdentityManager { }
+
+// Create custom implementations
+public class PrimaryDbIdentityManager : IdentityManager, IPrimaryDbIdentityManager
+{
+    public PrimaryDbIdentityManager(IIdentityFactory factory) : base(factory) { }
+}
+
+public class SecondaryDbIdentityManager : IdentityManager, ISecondaryDbIdentityManager
+{
+    public SecondaryDbIdentityManager(IIdentityFactory factory) : base(factory) { }
+}
+
+// Register both configurations
+services.AddObjectIdentity<IPrimaryDbIdentityManager, PrimaryDbIdentityManager>(
+    options =>
+    {
+        options.ConnectionString = "PrimaryDbConnection";
+        options.IdentitySchema = "PrimaryIdentity";
+    });
+
+services.AddObjectIdentity<ISecondaryDbIdentityManager, SecondaryDbIdentityManager>(
+    options =>
+    {
+        options.ConnectionString = "SecondaryDbConnection";
+        options.IdentitySchema = "SecondaryIdentity";
+    });
+
+// Use them independently
+var primaryManager = provider.GetRequiredService<IPrimaryDbIdentityManager>();
+var secondaryManager = provider.GetRequiredService<ISecondaryDbIdentityManager>();
 ```
 
 ## Testing

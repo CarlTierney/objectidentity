@@ -15,7 +15,7 @@ namespace ObjectIdentity
     /// The IdentityManager provides centralized identity generation with automatic scope initialization
     /// and caching for high-performance ID generation.
     /// </remarks>
-    public class IdentityManager
+    public class IdentityManager : IIdentityManager
     {
         private readonly object _registrationlock = new object();
         private readonly ConcurrentDictionary<string, IIdentityScope> _idScopes = new ConcurrentDictionary<string, IIdentityScope>();
