@@ -44,8 +44,8 @@ public static class ObjectIdentityServiceCollectionExtensions
         services.Configure(configureOptions);
         services.AddSingleton<IIdentityStore, SqlIdentityStore>();
         services.AddSingleton<IIdentityFactory, IdentityFactory>();
-        services.AddSingleton<IIdentityManager, IdentityManager>();
         services.AddSingleton<IdentityManager>();
+        services.AddSingleton<IIdentityManager>(provider => provider.GetRequiredService<IdentityManager>());
         
         return services;
     }

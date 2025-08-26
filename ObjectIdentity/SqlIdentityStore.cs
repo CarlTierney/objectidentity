@@ -158,7 +158,7 @@ namespace ObjectIdentity
 
                 try
                 {
-                    ExecuteNonQuery($"IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = '{_identitySchema}') EXEC('create schema {_identitySchema}')");
+                    ExecuteNonQuery($"IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = '{_identitySchema}') EXEC('create schema [{_identitySchema}]')");
                     _dbInitialized = true;
                 }
                 catch (SqlException e)
@@ -189,7 +189,7 @@ namespace ObjectIdentity
 
                 try
                 {
-                    await ExecuteNonQueryAsync($"IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = '{_identitySchema}') EXEC('create schema {_identitySchema}')", cancellationToken);
+                    await ExecuteNonQueryAsync($"IF NOT EXISTS (SELECT name FROM sys.schemas WHERE name = '{_identitySchema}') EXEC('create schema [{_identitySchema}]')", cancellationToken);
                     _dbInitialized = true;
                 }
                 catch (SqlException e)
@@ -407,7 +407,7 @@ namespace ObjectIdentity
         public virtual string GetSequenceName(string? scope)
         {
             var tableName = GetTableName(scope);
-            return $"{_identitySchema}.{tableName}";
+            return $"[{_identitySchema}].[{tableName}]";
         }
 
         /// <summary>
@@ -673,8 +673,8 @@ namespace ObjectIdentity
         {
             var tableName = GetTableName(scope);
             string sql = maxValue.HasValue
-                ? $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE {_identitySchema}.{tableName} AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100 MAXVALUE {maxValue.Value} CYCLE"
-                : $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE {_identitySchema}.{tableName} AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100";
+                ? $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE [{_identitySchema}].[{tableName}] AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100 MAXVALUE {maxValue.Value} CYCLE"
+                : $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE [{_identitySchema}].[{tableName}] AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100";
 
             ExecuteNonQuery(sql);
             _initializedScopes[scope] = true;
@@ -696,8 +696,8 @@ namespace ObjectIdentity
         {
             var tableName = GetTableName(scope);
             string sql = maxValue.HasValue
-                ? $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE {_identitySchema}.{tableName} AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100 MAXVALUE {maxValue.Value} CYCLE"
-                : $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE {_identitySchema}.{tableName} AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100";
+                ? $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE [{_identitySchema}].[{tableName}] AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100 MAXVALUE {maxValue.Value} CYCLE"
+                : $"IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE name = '{tableName}' AND schema_id = SCHEMA_ID('{_identitySchema}')) CREATE SEQUENCE [{_identitySchema}].[{tableName}] AS BIGINT START WITH {startValue} INCREMENT BY 1 CACHE 100";
 
             await ExecuteNonQueryAsync(sql, cancellationToken);
             _initializedScopes[scope] = true;

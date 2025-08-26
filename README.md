@@ -9,14 +9,16 @@ A library for generating unique sequential IDs for objects across many servers a
 ## Features
 
 - Multi server, Thread-safe unique ID generation
-- SQL Server backend
+- SQL Server backend with proper escaping of reserved keywords
 - Designed to support multiple instances of identity services without creating duplicate ids regardless of scale out
+- Support for multiple identity managers targeting different databases or schemas in a single application
 - Extensible to support alternative stores for mechanisms via the IIdentityStore interface
 - Configurable ID ranges
 - Efficient batch allocation, allocation of block sizes can be handled via the scope initializer
 - Designed to be able to handle existing data by allowing the sequences to be configured with a starting id
 - Intended to reduce round trips to the database by grabbing sets of ids at a time 
 - Uses a background thread to retrieve additional ids prior to the id cache running out to prevent intermittiant pauses in id assignment
+- Dependency injection support with proper singleton registration for both interface and concrete types
 
 ## Usage
 
@@ -138,9 +140,9 @@ var service = new YourService(mockManager);
 // Test your service logic without database dependency
 ```
 
-### Multiple Configurations
+### Multiple Identity Manager Configurations
 
-You can register multiple identity managers with different configurations in the same project:
+The library supports multiple identity managers with different configurations in the same project. This is useful when you need to generate IDs for different databases, schemas, or have different configuration requirements:
 
 ```csharp
 // Define custom interfaces for different databases/schemas
@@ -177,6 +179,8 @@ services.AddObjectIdentity<ISecondaryDbIdentityManager, SecondaryDbIdentityManag
 var primaryManager = provider.GetRequiredService<IPrimaryDbIdentityManager>();
 var secondaryManager = provider.GetRequiredService<ISecondaryDbIdentityManager>();
 ```
+
+**Note:** When using SQL Server reserved keywords as schema names (like "Primary", "Secondary", etc.), the library will automatically escape them properly in SQL statements.
 
 ## Testing
 
